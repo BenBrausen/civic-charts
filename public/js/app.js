@@ -17,7 +17,7 @@
     customColors: ['#1d4e89', '#e4572e', '#29a36a', '#f2a541', '#7d5ba6', '#5c5c5c'], ramp: 'auto', headFont: 'theme', bodyFont: 'theme',
     accent: '', bg: '', bgGradient: false, radius: 6, lineWidth: 5, grid: 'light', textScale: 1, titleStyle: 'title', annotate: true, zeroBase: true,
     series: [], entities: [], topN: 10, highlight: '', sortAsc: false, rangeStart: null, rangeEnd: null, handle: '', brand: true,
-    motion: 'steady', takeaway: true, takeawayText: '', captions: true, script: '', scriptEdited: false, voice: '', speakPreview: false, music: 'auto', aiVoice: 'en-US-Chirp3-HD-Charon',
+    motion: 'steady', takeaway: true, takeawayText: '', captions: true, script: '', scriptEdited: false, voice: '', speakPreview: false, music: 'none', aiVoice: 'en-US-Chirp3-HD-Charon',
     kicker: '', title: '', subtitle: '', note: '', colorZero: false, focus: '', compareNational: true, titleEdited: false, minPop: 0, scope: '', compare: [], combineMethod: '',
   };
   let o = { ...DEFAULTS };
