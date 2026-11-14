@@ -63,17 +63,19 @@
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.25;
     const master = ctx.createGain(); master.gain.setValueAtTime(0, 0); master.gain.linearRampToValueAtTime(1, 0.6);
     master.gain.setValueAtTime(1, Math.max(0.7, end - 1.6)); master.gain.linearRampToValueAtTime(0, end);
-    comp.connect(master).connect(ctx.destination);
-    const verb = ctx.createConvolver(); verb.buffer = impulse(ctx, 2.6, 2.4, rand);
-    const verbGain = ctx.createGain(); verbGain.gain.value = mood === 'chill' ? 0.32 : 0.22; verb.connect(verbGain).connect(comp);
+    // Cut sub-bass: phone and laptop speakers can't reproduce it and rattle (the "broken speaker" buzz).
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90; hp.Q.value = 0.7;
+    comp.connect(hp).connect(master).connect(ctx.destination);
+    const verb = ctx.createConvolver(); verb.buffer = impulse(ctx, 1.8, 3.2, rand);
+    const verbGain = ctx.createGain(); verbGain.gain.value = mood === 'chill' ? 0.22 : 0.16; verb.connect(verbGain).connect(comp);
     const bus = (dry = 1, wet = 0.5) => { const g = ctx.createGain(); g.gain.value = dry; g.connect(comp); const w = ctx.createGain(); w.gain.value = wet; g.connect(w).connect(verb); return g; };
     const noise = noiseBuffer(ctx, rand);
 
     // How intense the track is at time t (0..1). Building ramps to the reveal; others hold.
     const intensity = t => (mood !== 'build' ? 1 : t < reveal ? 0.15 + 0.85 * (t / reveal) ** 1.6 : t < reveal + bar * 2 ? 1 : 0.7);
 
-    // ---- pad: detuned saws through a low-pass filter ----
-    const padBus = bus(0.16, 0.6);
+    // ---- pad: the chords, the main layer you hear. Warm triangles plus a little filtered saw. ----
+    const padBus = bus(0.55, 0.45);
     const chordAt = i => prog[Math.floor(i / st.barsPerChord) % prog.length];
     const nBars = Math.ceil(end / bar);
     for (let b = 0; b < nBars; b++) {
@@ -84,25 +86,26 @@
       filt.frequency.setValueAtTime(cut * 0.7, t0); filt.frequency.linearRampToValueAtTime(cut, t0 + bar * 0.5); filt.Q.value = 0.7;
       const env = ctx.createGain(); env.gain.setValueAtTime(0, t0); env.gain.linearRampToValueAtTime(1, t0 + Math.min(0.5, bar * 0.2)); env.gain.setValueAtTime(1, t1 - 0.12); env.gain.linearRampToValueAtTime(0, t1);
       filt.connect(env).connect(padBus);
-      for (const iv of shape) for (const det of [-7, 6]) {
-        const o = ctx.createOscillator(); o.type = mood === 'chill' ? 'triangle' : 'sawtooth';
+      for (const iv of shape) for (const [type, det, lvl] of [['triangle', -6, 1], ['triangle', 7, 1], ['sawtooth', 0, mood === 'chill' ? 0 : 0.18]]) {
+        if (!lvl) continue;
+        const o = ctx.createOscillator(); o.type = type;
         o.frequency.value = hz(root + iv); o.detune.value = det;
-        const g = ctx.createGain(); g.gain.value = 0.22 / shape.length;
+        const g = ctx.createGain(); g.gain.value = 0.3 * lvl / shape.length;
         o.connect(g).connect(filt); o.start(t0); o.stop(t1 + 0.05);
       }
     }
 
     // ---- bass: root on the beat (energetic) or held (others) ----
-    const bassBus = bus(mood === 'energetic' ? 0.34 : 0.22, 0.05);
+    const bassBus = bus(mood === 'energetic' ? 0.16 : 0.12, 0.05);
     for (let b = 0; b < nBars; b++) {
-      const t0 = b * bar, [deg] = chordAt(b), note = key + deg - 24 - (deg > 6 ? 12 : 0);
+      const t0 = b * bar, [deg] = chordAt(b), note = key + deg - 12 - (deg > 6 ? 12 : 0);
       const hits = mood === 'energetic' ? [0, 1, 2, 3].map(k => t0 + k * beat) : mood === 'build' && intensity(t0) > 0.55 ? [t0, t0 + beat * 2] : [t0];
       for (const t of hits) {
         if (t >= end) continue;
         const dur = mood === 'energetic' ? beat * 0.85 : Math.min(bar, end - t) * (hits.length > 1 ? 0.5 : 0.95);
-        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = hz(note);
-        const o2 = ctx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = hz(note + 12);
-        const g = ctx.createGain(), g2 = ctx.createGain(); g2.gain.value = 0.18;
+        const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = hz(note);
+        const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = hz(note + 12);
+        const g = ctx.createGain(), g2 = ctx.createGain(); g2.gain.value = 0.35;
         const v = intensity(t);
         g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.02);
         // Energetic: short punchy notes. Others: a held note that eases off slightly, so the
@@ -115,12 +118,12 @@
     }
 
     // ---- drums ----
-    const drumBus = bus(0.5, 0.06);
+    const drumBus = bus(0.32, 0.04);
     const kick = (t, v = 1) => {
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
-      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-      o.connect(g).connect(drumBus); o.start(t); o.stop(t + 0.35);
+      o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(95, t + 0.07);
+      g.gain.setValueAtTime(v * 0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(g).connect(drumBus); o.start(t); o.stop(t + 0.2);
     };
     const hiss = (t, dur, freq, type, v) => {
       const s = ctx.createBufferSource(); s.buffer = noise; const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
@@ -155,7 +158,7 @@
     }
 
     // ---- melody: plucked arpeggio (energetic, build) or sparse electric-piano notes (chill) ----
-    const leadBus = bus(0.1, 0.5);
+    const leadBus = bus(0.32, 0.35);
     const pluck = (t, midi, dur, v, type = 'triangle') => {
       const o = ctx.createOscillator(); o.type = type; o.frequency.value = hz(midi);
       const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.008); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
