@@ -129,11 +129,10 @@
   let audioCtx, audioSrc;
   // Music mood actually used. "Auto": none for TikTok/Reels (trending in-app sounds help reach
   // there), building music when the story is a record, laid back otherwise.
+  // Music is added in each platform's own app (trending sounds help reach), so videos carry
+  // only the voiceover. music.js still mixes the voiceover (PS.soundtrack); its music generator is unused.
   function musicMood() {
-    if (o.format !== 'video') return 'none';
-    if (o.music !== 'auto') return o.music;
-    if (['vertical', 'reels'].includes(o.platform)) return 'none';
-    return /on record|highest since|lowest since|record high|record low/i.test(S.analysis?.headline || '') ? 'build' : 'chill';
+    return 'none';
   }
   const soundtrackOpts = () => ({ voice: S.audio?.buffer || null, mood: musicMood(), duration: o.duration, seed: S.ds?.id || 'civic', revealAt: o.duration * (o.takeaway ? 0.8 : 0.92) });
   function soundtrack() { return PS.soundtrack(soundtrackOpts()); }
@@ -294,10 +293,7 @@
     return caps;
   }
   function musicHTML() {
-    const auto = o.music === 'auto' ? `Auto: ${PS.moodName(musicMood())}` : 'Auto';
-    const tiktok = ['vertical', 'reels'].includes(o.platform);
-    return `<h3>Music</h3><div class="chips">${[['auto', auto], ...PS.MOODS].map(([k, l]) => `<button class="chip ${o.music === k ? 'active' : ''}" data-music="${k}">${esc(l)}</button>`).join('')}</div>
-      <p class="muted">Original music composed for this chart, so it can't be copyright-claimed. It drops back automatically while a voiceover speaks.${tiktok ? ' On TikTok and Reels, a trending sound added in the app can help reach, so Auto leaves music off for this size.' : ''}</p>`;
+    return o.format === 'video' ? '<p class="muted">No music is added. Pick a sound in TikTok, Instagram or YouTube when you post: trending sounds help reach.</p>' : '';
   }
   function aiVoiceHTML() {
     if (!S.ttsOn) return '';
@@ -642,7 +638,6 @@
     if (t.dataset.chart) { PS.track('select_chart', { chart_type: t.dataset.chart }); o.chart = t.dataset.chart; Object.assign(o, { takeawayText: '' }); if (!o.titleEdited) o.title = autoTitle(S.ds); update(); renderStep(); return; }
     if (t.dataset.theme) { o.theme = t.dataset.theme; o.bg = ''; update(); renderStep(); return; }
     if (t.dataset.pal) { o.palette = t.dataset.pal; update(); renderStep(); return; }
-    if (t.dataset.music) { o.music = t.dataset.music; pause(); renderStep(); if (o.music !== 'none') play(0); return; }
     if (t.dataset.ramp) { o.ramp = t.dataset.ramp; update(); renderStep(); return; }
     if (t.dataset.fmt) { o.format = t.dataset.fmt; S.p = 1; update(); renderStep(); return; }
     const act = t.dataset.act; if (!act) return;
