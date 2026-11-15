@@ -74,9 +74,32 @@ async function tts(req, env, ctx, path) {
   return res;
 }
 
+// ---------- short-lived media links: /media/<name>.mp4 ----------
+// Instagram's API only accepts video from a public web address. The auto-poster uploads a video
+// here (PUT, with the MEDIA_UPLOAD_TOKEN secret), Instagram fetches it, and it expires after 3 days.
+// Stored in the TTS_KV namespace under "media:". Names are random, so links can't be guessed.
+async function media(req, env, name) {
+  const h = { 'Access-Control-Allow-Origin': '*' };
+  if (!/^[a-z0-9-]{16,80}\.(mp4|jpg)$/.test(name)) return new Response('Not found', { status: 404, headers: h });
+  if (!env.TTS_KV) return new Response('Media storage is not set up', { status: 503, headers: h });
+  const type = name.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg';
+  if (req.method === 'PUT') {
+    if (!env.MEDIA_UPLOAD_TOKEN || req.headers.get('Authorization') !== `Bearer ${env.MEDIA_UPLOAD_TOKEN}`) return new Response('Not allowed', { status: 403, headers: h });
+    const body = await req.arrayBuffer();
+    if (body.byteLength > 25 * 1024 * 1024) return new Response('Files can be up to 25 MB', { status: 413, headers: h });
+    await env.TTS_KV.put(`media:${name}`, body, { expirationTtl: 3 * 86400, metadata: { type } });
+    return new Response(JSON.stringify({ url: new URL(req.url).toString(), bytes: body.byteLength }), { status: 201, headers: { ...h, 'Content-Type': 'application/json' } });
+  }
+  if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('Use GET', { status: 405, headers: h });
+  const value = await env.TTS_KV.get(`media:${name}`, { type: 'arrayBuffer' });
+  if (!value) return new Response('Not found or expired', { status: 404, headers: h });
+  return new Response(req.method === 'HEAD' ? null : value, { headers: { ...h, 'Content-Type': type, 'Content-Length': String(value.byteLength), 'Cache-Control': 'public, max-age=86400' } });
+}
+
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
+    if (u.pathname.startsWith('/media/')) return media(req, env, u.pathname.slice(7));
     if (u.pathname === '/api/tts' || u.pathname === '/api/tts/status') return tts(req, env, ctx, u.pathname);
     let target;
     if (u.pathname === '/api/search') {

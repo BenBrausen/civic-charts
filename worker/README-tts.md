@@ -46,6 +46,12 @@ Cloudflare dashboard → Workers & Pages → `plainsight-proxy` → Settings.
 Cloudflare's locations. Without it, only the bot check, the 1,000-character cap and Google's
 quota apply. Daily usage is visible in the KV namespace as `day:YYYY-MM-DD` (characters).
 
+## Media links for Instagram (auto-poster)
+
+The Worker also serves `/media/<name>.mp4` so Instagram can fetch videos from a public address.
+The auto-poster uploads with the `MEDIA_UPLOAD_TOKEN` secret (set the same random value on the
+Worker and in the civic-charts-social repo); files live in `TTS_KV` and expire after 3 days.
+
 ## 4. Deploy the new Worker code
 
 From a computer with Node, in the repo folder:

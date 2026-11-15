@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Sign-in code | Civic Charts</title>
+<style>
+  :root { --bg: #f6f5f1; --fg: #1b1b1b; --muted: #5c5c5c; --box: #fff; --line: #ddd9cf; --accent: #2f6fd6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161616; --fg: #ececec; --muted: #a8a8a8; --box: #222; --line: #3a3a3a; --accent: #6ea0ff; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 48px 16px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  p { color: var(--muted); }
+  textarea { width: 100%; box-sizing: border-box; min-height: 96px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--box); color: var(--fg); font: 14px/1.4 ui-monospace, monospace; word-break: break-all; }
+  button { margin-top: 10px; padding: 10px 16px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sign-in code</h1>
+  <p id="msg">This page receives the one-time code after you connect a social account to the Civic Charts poster.</p>
+  <div id="out" hidden>
+    <textarea id="code" readonly></textarea>
+    <button id="copy" type="button">Copy code</button>
+    <p>Paste it into the terminal where the sign-in helper is waiting. The code works once and expires in a few minutes. This page doesn't save or send it anywhere.</p>
+  </div>
+</main>
+<script>
+  const q = new URLSearchParams(location.search), code = q.get('code'), err = q.get('error_description') || q.get('error');
+  if (code) {
+    document.getElementById('msg').textContent = 'Signed in. Copy this code:';
+    document.getElementById('code').value = code;
+    document.getElementById('out').hidden = false;
+    document.getElementById('copy').onclick = async () => { try { await navigator.clipboard.writeText(code); document.getElementById('copy').textContent = 'Copied'; } catch { document.getElementById('code').select(); } };
+    history.replaceState(null, '', location.pathname); // keep the code out of the address bar history
+  } else if (err) document.getElementById('msg').textContent = 'Sign-in did not finish: ' + err;
+</script>
+</body>
+</html>
