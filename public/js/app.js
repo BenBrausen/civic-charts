@@ -69,7 +69,9 @@
 
   // County datasets with a state chosen: only that state's counties, with short names.
   function viewOf(ds) {
-    const st = stateInfo();
+    // Imported county data from one state zooms to that state even with no state chosen.
+    const home = ds.homeState && PS.STATE_LIST.find(x => x[1] === ds.homeState);
+    const st = stateInfo() || (home ? { code: home[0], fips: home[1], name: home[2] } : null);
     if (ds.geo !== 'us-counties' || !st) { o.scope = ''; return ds; }
     o.scope = st.fips;
     const entities = ds.entities.filter(e => e.id.startsWith(st.fips)).map(e => ({ ...e, name: e.short || e.name }));
@@ -479,7 +481,7 @@
         ${sc.org ? `<p class="muted">Limited to ${esc(sc.orgName)} <button class="linkbtn" data-act="clearOrg">clear</button></p>` : ''}
         ${st && sc.scope === 'state' ? portalChips(st.code) + portalChips(st.code, 'local') : ''}
         <div class="results">${sc.busy ? '<p class="muted">Searching…</p>' : ''}${sc.err ? `<p class="err">${esc(sc.err)}</p>` : ''}${sc.info ? `<p class="muted">${esc(sc.info)}</p>` : ''}
-        ${sc.results.map((r, i) => `<div class="result"><b>${esc(r.title)}</b><div class="meta">${tierBadge(r.tier)} ${esc(r.publisher)}${r.state && !r.publisher.includes(r.state) ? ' · ' + esc(r.state) : ''}${r.modified ? ' · updated ' + esc(String(r.modified).slice(0, 10)) : ''} · ${esc(r.platform === 'data.gov' ? 'data.gov' : r.host)}</div>${r.description ? `<p>${esc(r.description)}</p>` : ''}${r.q?.flags.length ? `<div class="result-flags">${r.q.flags.map(f => `<span class="flag ${f.kind}">${esc(f.text)}</span>`).join('')}</div>` : ''}<div class="row">${r.q?.loadable === false ? '<button class="btn" disabled>No data file</button>' : `<button class="btn" data-load="${i}">Load data</button>`}<a class="muted" href="${esc(r.landing)}" target="_blank" rel="noopener" style="flex:none">Source page ↗</a></div></div>`).join('')}</div>` + mapperHTML();
+        ${mapperHTML()}${sc.results.map((r, i) => `<div class="result"><b>${esc(r.title)}</b><div class="meta">${tierBadge(r.tier)} ${esc(r.publisher)}${r.state && !r.publisher.includes(r.state) ? ' · ' + esc(r.state) : ''}${r.modified ? ' · updated ' + esc(String(r.modified).slice(0, 10)) : ''} · ${esc(r.platform === 'data.gov' ? 'data.gov' : r.host)}</div>${r.description ? `<p>${esc(r.description)}</p>` : ''}${r.q?.flags.length ? `<div class="result-flags">${r.q.flags.map(f => `<span class="flag ${f.kind}">${esc(f.text)}</span>`).join('')}</div>` : ''}<div class="row">${r.q?.loadable === false ? '<button class="btn" disabled>No data file</button>' : `<button class="btn" data-load="${i}">Load data</button>`}<a class="muted" href="${esc(r.landing)}" target="_blank" rel="noopener" style="flex:none">Source page ↗</a></div></div>`).join('')}</div>`;
     }
 
     else {
@@ -546,12 +548,12 @@
   function mapperHTML() {
     const im = S.imported; if (!im) return '';
     const opt = (k, types, none) => `<select data-map="${k}">${none ? `<option value="-1">${none}</option>` : ''}${im.cols.filter(c => types.includes(c.type)).map(c => `<option value="${c.i}" ${im.map[k] === c.i ? 'selected' : ''}>${esc(c.name)} (${c.type})</option>`).join('')}</select>`;
-    return `<div class="mapper"><b>${esc(im.meta.title)}</b><p class="muted">${im.table.rows.length.toLocaleString()} rows · ${im.cols.length} columns</p>
+    return `<div class="mapper" id="mapper"><div class="row" style="justify-content:space-between"><b>${esc(im.meta.title)}</b><button class="linkbtn" data-act="closeImport" style="flex:none">Close</button></div><p class="muted">Loaded ${im.table.rows.length.toLocaleString()} rows and ${im.cols.length} columns. Pick what to chart, then Build chart.</p>
       ${field('Time', opt('time', ['date'], 'None (one moment)'))}
       ${im.cols.some(c => c.type === 'month') ? field('Month column (combined with year)', opt('month', ['month'], 'None')) : ''}
       ${im.cols.some(c => c.values && c.values.length >= 2) ? field('Only rows where', `<div class="row"><select data-map="filterCol"><option value="-1">No filter</option>${im.cols.filter(c => c.values && c.values.length >= 2).map(c => `<option value="${c.i}" ${im.map.filterCol === c.i ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>${im.map.filterCol >= 0 ? `<select data-map="filterVal">${im.cols[im.map.filterCol].values.map(v => `<option ${im.map.filterVal === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>` : ''}</div><p class="muted">Use this when a file mixes totals and their parts, like a state total plus its counties.</p>`) : ''}
       ${field('Place or category', opt('category', ['county', 'countyfips', 'state', 'country', 'text'], 'None (single series)'))}
-      ${field('Value', opt('value', ['number'], ''))}
+      ${field('Value', `<select data-map="value"><option value="-2" ${im.map.value === -2 ? 'selected' : ''}>Count of rows (how many)</option>${im.cols.filter(c => c.type === 'number').map(c => `<option value="${c.i}" ${im.map.value === c.i ? 'selected' : ''}>${esc(c.name)}${PS.isMeasure(c, im.table) ? '' : ' (id or code)'}</option>`).join('')}</select>`)}
       ${field('Combine duplicate rows by', `<select data-map="agg">${['sum', 'mean', 'max', 'min', 'count'].map(a => `<option ${im.map.agg === a ? 'selected' : ''}>${a}</option>`).join('')}</select>`)}
       <button class="btn primary block" data-act="build">Build chart</button>
       <table><tr>${im.table.header.slice(0, 5).map(h => `<th>${esc(h)}</th>`).join('')}</tr>${im.table.rows.slice(0, 4).map(r => `<tr>${r.slice(0, 5).map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
@@ -569,6 +571,7 @@
       const cols = PS.profile(table, { stateFips });
       S.imported = { table, cols, map: PS.guessMapping(cols, table), meta };
       renderStep();
+      requestAnimationFrame(() => document.getElementById('mapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     } catch (e) { toast('Could not read that file: ' + e.message); }
   }
 
@@ -663,6 +666,7 @@
       const im = S.imported;
       try {
         const { ds, skipped } = PS.buildFromTable(im.table, im.cols, im.map, { ...im.meta, id: 'custom-' + (S.custom.length + 1) });
+        if (ds.geo === 'us-counties') { const st = new Set(ds.entities.filter(e => e.values.some(v => v != null)).map(e => String(e.id).slice(0, 2))); if (st.size === 1) ds.homeState = [...st][0]; }
         S.custom = S.custom.filter(d => d.title !== ds.title).concat(ds);
         S.imported = null; S.dataTab = 'topics';
         selectDataset(ds.id);
@@ -683,6 +687,7 @@
       renderStep();
     },
     removeAudio: () => { S.audio = null; renderStep(); },
+    closeImport: () => { S.imported = null; renderStep(); },
     aiVoice: async t => {
       if (o.format === 'image') { toast('Voiceover is for video. Switch format to Video.'); return; }
       const label = t.textContent; t.disabled = true; t.textContent = 'Making the voiceover…';

@@ -387,21 +387,29 @@
     });
   };
 
+  // Columns that are numbers but not measurements: record ids, map geometry, coordinates, codes.
+  const NOT_A_MEASURE = /^(object_?id|fid|ogc_?fid|gid|id|global_?id|.*_id|id_.*|shape_?(length|area|leng|len|_?st.*)|shape|st_(area|length).*|x|y|lat|latitude|lon|lng|long|longitude|easting|northing|zip|zip_?code|postal.*|phone|.*_code)$/i;
+  const bare = n => String(n).trim().replace(/^_+|_+$/g, ''); // GIS files pad names: "LONG_"
+  PS.isMeasure = (c, table) => c.type === 'number' && !NOT_A_MEASURE.test(bare(c.name)) && !(table && c.distinct >= Math.min(2000, table.rows.length) * 0.98 && /id|key|num|no\b/i.test(c.name));
   PS.guessMapping = (cols, table) => {
     const date = cols.find(c => c.type === 'date');
     const month = date && /year|yr/i.test(date.name) ? cols.find(c => c.type === 'month') : null;
     // The most detailed geography wins: counties over states.
     const geo = cols.find(c => c.type === 'countyfips') || cols.find(c => c.type === 'county') || cols.find(c => c.type === 'state' || c.type === 'country');
     const stateCol = cols.find(c => c.type === 'state');
-    const value = cols.filter(c => c.type === 'number' && c !== date).sort((a, b) => (b.pct - a.pct) || (b.distinct - a.distinct))[0];
+    // A map layer (record ids or coordinates: one row per roundabout, curb or well) gets counted
+    // per place; its numeric columns are attributes of each thing, not statistics.
+    const featureLayer = cols.some(c => /^(object_?id|fid|ogc_?fid|x|y|lat|latitude|lon|lng|long|longitude|shape_?(length|area|leng))$/i.test(bare(c.name)));
+    const value = featureLayer ? null : cols.filter(c => PS.isMeasure(c, table) && c !== date).sort((a, b) => (b.pct - a.pct) || (b.distinct - a.distinct))[0];
     // The most detailed text column is usually the "place" or "category".
     const cat = geo || cols.filter(c => c.type === 'text' && c.distinct > 1 && c.distinct <= 300).sort((a, b) => b.distinct - a.distinct)[0];
     // A low-cardinality "level" column (area_type = State/County/Metro) means the
     // file mixes totals with their parts. Default to the level with the most rows.
-    const level = cols.find(c => c !== cat && c.type === 'text' && c.values && c.values.length >= 2 && c.values.length <= 8 && /type|level|geo|area|category|class/i.test(c.name));
+    const level = !featureLayer && cols.find(c => c !== cat && c.type === 'text' && c.values && c.values.length >= 2 && c.values.length <= 8 && /type|level|geo|area|category|class/i.test(c.name));
     // With a county column, keep the county rows; otherwise the level with the most rows.
     const levelVal = level ? (['county', 'countyfips'].includes(cat?.type) && level.values.find(v => /county/i.test(v))) || level.values[0] : '';
-    return { time: date?.i ?? -1, month: month?.i ?? -1, value: value?.i ?? -1, category: cat?.i ?? -1, agg: value?.pct ? 'mean' : 'sum', stateCol: stateCol?.i ?? -1,
+    // No real measurement (a map layer: one row per roundabout, curb or well): count rows per place.
+    return { time: value ? date?.i ?? -1 : -1, month: value ? month?.i ?? -1 : -1, value: value?.i ?? -2, category: cat?.i ?? -1, agg: !value ? 'count' : value.pct ? 'mean' : 'sum', stateCol: stateCol?.i ?? -1,
       filterCol: level ? level.i : -1, filterVal: levelVal };
   };
 
@@ -415,7 +423,10 @@
       return toDate(r[map.time]);
     };
     let dupes = 0;
-    const vc = cols[map.value], cc = cols[map.category], tc = cols[map.time];
+    // value -2: count rows (each row is one thing: a roundabout, an inspection, a permit).
+    const counting = map.value === -2;
+    if (counting) map = { ...map, agg: 'count' };
+    const vc = counting ? { name: `Number of ${String(meta.title || 'records').replace(/^./, c => c.toLowerCase())}`, pct: false, usd: false } : cols[map.value], cc = cols[map.category], tc = cols[map.time];
     if (!vc) throw new Error('Choose a numeric value column.');
     // "unemployment_rate" -> "Unemployment rate"
     const pretty = n => { const t = String(n).replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim(); return /[a-z]/.test(t) && t === t.toLowerCase() ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
@@ -439,7 +450,7 @@
       if (geoType === 'world') { const id = countryOf(v); return id ? { id, name: String(v).trim() } : null; }
       const s = String(v).trim(); return s ? { id: s, name: s } : null;
     };
-    const vals = r => num(r[map.value]);
+    const vals = r => (counting ? 1 : num(r[map.value]));
     let skipped = 0;
     const base = { ...meta, unit, retrieved: new Date().toISOString(), howToRead: meta.howToRead || [], caveats: [...(meta.caveats || [])] };
     if (map.filterCol >= 0 && map.filterVal !== '') base.caveats.push(`Only rows where ${cols[map.filterCol].name} is "${map.filterVal}" are shown.`);
