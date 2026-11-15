@@ -206,7 +206,7 @@ Someone determined to mislead can still edit a file in another app. The goal is 
 
 Videos carry no music: add a sound in TikTok, Instagram or YouTube when posting (trending sounds help reach). `public/js/music.js` mixes the voiceover track; its music generator is no longer offered.
 
-AI voiceovers use Google Cloud Text-to-Speech (Chirp 3 HD voices) through the Cloudflare Worker, which holds the key as a secret and enforces a Turnstile bot check, a 1,000-character cap, 12 voiceovers per visitor per hour and a daily character budget. Setup: `worker/README-tts.md`. The video lengthens to fit the narration, and the longer post texts add "Narration: AI voice." Run `TTS_FAKE=1 node server.js` to test without a key.
+AI voiceovers use Google Cloud Text-to-Speech (Chirp 3 HD voices) through the Cloudflare Worker, which holds the key as a secret and enforces a Turnstile bot check, a 1,000-character cap, 12 voiceovers per visitor per hour and a daily character budget. Setup: `worker/README-tts.md`. The video lengthens to fit the narration. Run `TTS_FAKE=1 node server.js` to test without a key.
 
 ## Sharing
 

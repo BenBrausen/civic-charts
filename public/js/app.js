@@ -227,7 +227,7 @@
     o.showSafe = false; pause(); S.p = 1; update();
     await document.fonts.ready; renderer.layout = null; update({ panels: false });
     const ds = S.comboDs || S.ds, link = PS.shareLink(S.ds.id, o, S.state, DEFAULTS, autoOpts());
-    const caps = aiNote(PS.postCaptions(ds.combo ? { ...ds, topic: S.ds.topic } : { ...S.ds, topic: S.ds.topic }, S.analysis, { ...o, title: o.title || S.ds.title }, link));
+    const caps = PS.postCaptions(ds.combo ? { ...ds, topic: S.ds.topic } : { ...S.ds, topic: S.ds.topic }, S.analysis, { ...o, title: o.title || S.ds.title }, link);
     const cat = S.catalog.find(c => c.id === S.ds.id) || {};
     window.CC_RENDER = {
       ready: true,
@@ -286,12 +286,6 @@
   const check = (k, label) => `<label class="chk"><input type="checkbox" data-k="${k}" ${o[k] ? 'checked' : ''}> ${label}</label>`;
   const range = (k, min, max, step = 1) => `<input type="range" data-k="${k}" data-num min="${min}" max="${max}" step="${step}" value="${o[k]}">`;
   // ---------- sound: music and AI voice controls (shared by Simple and Advanced) ----------
-  // Disclose AI narration in the longer post texts (short ones like X and Bluesky have no room).
-  function aiNote(caps) {
-    if (!(S.audio?.ai && o.format === 'video')) return caps;
-    for (const k of ['linkedin', 'facebook', 'instagram', 'tiktok', 'threads', 'youtube']) if (typeof caps[k] === 'string') caps[k] = caps[k].replace(/\s*$/, '') + '\n\nNarration: AI voice.';
-    return caps;
-  }
   function musicHTML() {
     return o.format === 'video' ? '<p class="muted">No music is added. Pick a sound in TikTok, Instagram or YouTube when you post: trending sounds help reach.</p>' : '';
   }
@@ -300,7 +294,7 @@
     const stale = S.audio?.ai && S.audio.text !== o.script;
     return `<div class="field"><div class="lbl">AI voiceover</div><div class="row">${select('aiVoice', PS.TTS_VOICES)}<button class="btn" data-act="aiVoice" style="flex:none">${S.audio?.ai ? 'Remake' : 'Make voiceover'}</button></div>
       ${stale ? '<p class="muted" style="color:var(--warn)">The script changed since this voiceover was made. Remake it so they match.</p>' : ''}
-      <p class="muted">Reads the script in a natural AI voice. The post text notes AI narration.</p></div>`;
+      <p class="muted">Reads the script in a natural AI voice.</p></div>`;
   }
   const audioRow = () => (S.audio ? `<div class="row"><span class="muted">${esc(S.audio.name)} · ${S.audio.buffer.duration.toFixed(1)}s</span><button class="btn" data-act="removeAudio" style="flex:none">Remove</button></div>` : '');
   const select = (k, opts) => `<select data-k="${k}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${String(o[k]) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
@@ -1065,7 +1059,7 @@
     const mime = PS.videoMime();
     const link = PS.shareLink(S.ds.id, o, S.state, DEFAULTS, autoOpts());
     const ds = S.comboDs || viewOf(S.ds);
-    const caps = aiNote(PS.postCaptions(ds.combo ? { ...ds, topic: S.ds.topic } : { ...S.ds, topic: S.ds.topic }, S.analysis, { ...o, title: o.title || S.ds.title }, link));
+    const caps = PS.postCaptions(ds.combo ? { ...ds, topic: S.ds.topic } : { ...S.ds, topic: S.ds.topic }, S.analysis, { ...o, title: o.title || S.ds.title }, link);
     // A tab picked by hand sticks for this size; otherwise the post text matches the size's network.
     const capTab = (S.capTabFor === o.platform && S.capTab) || PS.POST_FOR[o.platform] || 'linkedin';
     S.capTabShown = capTab;
