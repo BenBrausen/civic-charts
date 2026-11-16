@@ -1,5 +1,22 @@
 [
  {
+  "id": "state-home-values",
+  "title": "Typical home value by state",
+  "released": "2026-11-16T21:57:52.825Z",
+  "lastObservation": "2026-10-31",
+  "previousObservation": "2026-09-30",
+  "latest": null,
+  "previous": null,
+  "unit": {
+   "label": "Typical home value (ZHVI)",
+   "format": "usd",
+   "decimals": 0
+  },
+  "frequency": "monthly",
+  "topic": "housing",
+  "publisher": "Zillow Research"
+ },
+ {
   "id": "mortgage-rate",
   "title": "30-year mortgage rate",
   "released": "2026-11-12T23:34:13.099Z",
