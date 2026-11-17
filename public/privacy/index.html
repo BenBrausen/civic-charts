@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy | Civic Charts</title>
+<meta name="description" content="What Civic Charts collects, why, and who it is shared with.">
+<link rel="canonical" href="https://civiccharts.com/privacy/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+  :root { --bg: #f6f5f1; --fg: #1b1b1b; --muted: #555; --line: #ddd9cf; --accent: #1d4e89; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161616; --fg: #ececec; --muted: #aaa; --line: #333; --accent: #8db4ff; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 system-ui, -apple-system, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 30px; margin: 0 0 4px; } h2 { font-size: 20px; margin: 32px 0 6px; }
+  p, li { color: var(--fg); } .muted { color: var(--muted); font-size: 15px; }
+  a { color: var(--accent); } nav { margin-bottom: 28px; } nav a { text-decoration: none; font-weight: 600; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">← Civic Charts</a></nav>
+<h1>Privacy</h1>
+<p class="muted">Last updated November 17, 2026</p>
+<p>Civic Charts turns official public data into charts, maps and videos. It has no accounts and doesn't ask for your name or email. Here is everything it collects and why.</p>
+
+<h2>Usage analytics</h2>
+<p>We use Google Analytics 4 to count visits and which features are used: for example, which datasets are opened, which sizes are exported, and what people search for, so we know what to improve. Google signals and ad personalization are turned off. In the European Economic Area, the UK and Switzerland, analytics storage is off by default. The search words you type are sent so we can see which data people look for and can't find.</p>
+
+<h2>Stored in your browser</h2>
+<p>Your browser keeps your current chart and settings for up to 7 days, so a reload doesn't lose your work, plus a few preferences such as Simple or Advanced mode and your state. This stays on your device; we never receive it. Clearing your browser's site data removes it.</p>
+
+<h2>Data you load or upload</h2>
+<p>Files you upload are read in your browser and aren't sent to us. When you load a dataset from a government or university portal, the file passes through our server (a Cloudflare Worker) so your browser is allowed to read it. We don't keep it beyond a short cache.</p>
+
+<h2>AI voiceovers</h2>
+<p>If you make an AI voiceover, the script text is sent through our Cloudflare Worker to Google Cloud Text-to-Speech, which returns the audio. To avoid paying for the same audio twice, the Worker keeps the audio for that exact script for up to 30 days. Cloudflare Turnstile runs a bot check first, and Cloudflare may process technical signals such as your IP address to do it. The Worker also counts voiceovers per IP address for an hour, to limit abuse.</p>
+
+<h2>Our social media accounts</h2>
+<p>Civic Charts posts its own charts to its accounts on Bluesky, Threads, Facebook, Instagram, YouTube and TikTok, using those platforms' official tools. That connection is used only to publish Civic Charts' own posts. It doesn't read or collect anyone else's data.</p>
+
+<h2>Who else is involved</h2>
+<p>The site is hosted on GitHub Pages. Google (Analytics, Text-to-Speech) and Cloudflare (Worker, Turnstile) process data as described above under their own privacy policies. We don't sell data, and we don't use advertising trackers.</p>
+
+<h2>Contact</h2>
+<p>For privacy questions or requests, email <a href="mailto:hello@civiccharts.com">hello@civiccharts.com</a>.</p>
+<footer class="muted">Questions: <a href="mailto:hello@civiccharts.com">hello@civiccharts.com</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></footer>
+</main>
+</body>
+</html>
