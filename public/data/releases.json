@@ -1,5 +1,28 @@
 [
  {
+  "id": "gas-price",
+  "title": "U.S. gas price",
+  "released": "2026-11-17T20:51:30.142Z",
+  "lastObservation": "2026-11-16",
+  "previousObservation": "2026-11-09",
+  "latest": {
+   "t": "2026-11-16",
+   "v": 3.805
+  },
+  "previous": {
+   "t": "2026-11-09",
+   "v": 3.995
+  },
+  "unit": {
+   "label": "Dollars per gallon",
+   "format": "usd",
+   "decimals": 2
+  },
+  "frequency": "weekly",
+  "topic": "prices",
+  "publisher": "U.S. Energy Information Administration"
+ },
+ {
   "id": "state-home-values",
   "title": "Typical home value by state",
   "released": "2026-11-16T21:57:52.825Z",
