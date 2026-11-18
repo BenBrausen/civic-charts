@@ -1,5 +1,28 @@
 [
  {
+  "id": "job-postings",
+  "title": "Job postings on Indeed",
+  "released": "2026-11-18T07:20:50.824Z",
+  "lastObservation": "2026-11-13",
+  "previousObservation": "2026-11-06",
+  "latest": {
+   "t": "2026-11-13",
+   "v": 106.23
+  },
+  "previous": {
+   "t": "2026-11-06",
+   "v": 104.56
+  },
+  "unit": {
+   "label": "Job postings index (Feb 1, 2020 = 100)",
+   "format": "number",
+   "decimals": 1
+  },
+  "frequency": "weekly",
+  "topic": "economy",
+  "publisher": "Indeed Hiring Lab"
+ },
+ {
   "id": "gas-price",
   "title": "U.S. gas price",
   "released": "2026-11-17T20:51:30.142Z",
