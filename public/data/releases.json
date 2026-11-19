@@ -1,5 +1,82 @@
 [
  {
+  "id": "state-drought",
+  "title": "Drought by state",
+  "released": "2026-11-19T20:29:58.653Z",
+  "lastObservation": "2026-11-17",
+  "previousObservation": "2026-11-10",
+  "latest": {
+   "t": "2026-11-17",
+   "v": 35.14,
+   "series": "Contiguous U.S."
+  },
+  "previous": {
+   "t": "2026-11-10",
+   "v": 34.86,
+   "series": "Contiguous U.S."
+  },
+  "unit": {
+   "label": "Share of land area in drought (moderate or worse)",
+   "format": "pct",
+   "decimals": 0,
+   "max": 100
+  },
+  "frequency": "weekly",
+  "topic": "environment",
+  "publisher": "U.S. Drought Monitor (National Drought Mitigation Center, USDA and NOAA)"
+ },
+ {
+  "id": "mortgage-rate",
+  "title": "30-year mortgage rate",
+  "released": "2026-11-19T20:29:58.653Z",
+  "lastObservation": "2026-11-19",
+  "previousObservation": "2026-11-12",
+  "latest": {
+   "t": "2026-11-19",
+   "v": 7.28,
+   "series": "30-year fixed"
+  },
+  "previous": {
+   "t": "2026-11-12",
+   "v": 7.11,
+   "series": "30-year fixed"
+  },
+  "unit": {
+   "label": "Average rate",
+   "format": "pct",
+   "decimals": 2
+  },
+  "frequency": "weekly",
+  "topic": "housing",
+  "publisher": "Freddie Mac"
+ },
+ {
+  "id": "county-drought",
+  "title": "Drought by county",
+  "released": "2026-11-19T20:29:58.653Z",
+  "lastObservation": "2026-11-17",
+  "previousObservation": "2026-11-10",
+  "latest": {
+   "t": "2026-11-17",
+   "v": 35.14,
+   "series": "Contiguous U.S."
+  },
+  "previous": {
+   "t": "2026-11-10",
+   "v": 34.86,
+   "series": "Contiguous U.S."
+  },
+  "unit": {
+   "label": "Share of land area in drought (moderate or worse)",
+   "format": "pct",
+   "decimals": 0,
+   "max": 100
+  },
+  "frequency": "weekly",
+  "topic": "environment",
+  "publisher": "U.S. Drought Monitor (National Drought Mitigation Center, USDA and NOAA)"
+ },
+ {
   "id": "job-postings",
   "title": "Job postings on Indeed",
   "released": "2026-11-18T07:20:50.824Z",
