@@ -586,6 +586,16 @@
     if (t.dataset.geo) { S.search.geo = t.dataset.geo; document.querySelectorAll('[data-geo]').forEach(b => b.classList.toggle('active', b === t)); const el = $('#localResults'); if (el) el.innerHTML = localResultsHTML(); return; }
     if (t.dataset.topic) { S.topic = t.dataset.topic; renderStep(); return; }
     if (t.dataset.captab) { S.capTab = t.dataset.captab; S.capTabFor = o.platform; renderStep(); return; }
+    if (t.dataset.redditSub != null) {
+      // Opens the subreddit's post page with its title, and copies the source comment to paste after posting.
+      const ds = S.comboDs || S.ds, link = PS.shareLink(S.ds.id, o, S.state, DEFAULTS, autoOpts());
+      const caps = PS.postCaptions(ds.combo ? { ...ds, topic: S.ds.topic } : { ...S.ds, topic: S.ds.topic }, S.analysis, { ...o, title: o.title || S.ds.title }, link);
+      const r = PS.redditSubs(ds, o, caps, S.state || (S.ds.homeState || ''))[+t.dataset.redditSub];
+      PS.track('share', { method: 'reddit', content_type: 'chart', subreddit: r.sub });
+      copy(caps.reddit, `Source comment copied. Attach your image or video in r/${r.sub}, post, then paste it as the first comment.`);
+      window.open(PS.redditSubmitUrl(r.sub, r.title), '_blank', 'noopener');
+      return;
+    }
     if (t.dataset.compose) { PS.track('share', { method: t.dataset.compose, content_type: 'chart' });
       if (gate()) return;
       const text = $('#postCaption')?.value || '', link = PS.shareLink(S.ds.id, o, S.state, DEFAULTS, autoOpts());
@@ -1111,7 +1121,8 @@
         <label class="lbl small">Description</label>` : ''}
       ${capTab === 'reddit' ? `<label class="lbl small">Title</label><input type="text" id="redditTitle" readonly value="${esc(caps.redditTitle)}">
         <div class="row" style="margin:6px 0 10px"><button class="btn" data-act="copyRedditTitle">Copy title</button><button class="btn" data-compose="reddit">Open Reddit</button></div>
-        <p class="muted">Post as an <b>image</b> (4:5 Feed or 16:9 sizes read best in Reddit's feed). On r/dataisbeautiful, the [OC] tag is required, and the comment below must be posted within an hour or the post is removed.</p>
+        <div class="lbl small">Post to</div><div class="reddit-subs">${PS.redditSubs(ds, o, caps, S.state || (S.ds.homeState || '')).map((r, i) => `<button class="btn reddit-sub" data-reddit-sub="${i}"><b>r/${esc(r.sub)}</b><small>${esc(r.why)}</small></button>`).join('')}</div>
+        <p class="muted">Each button opens that subreddit's post page with the title filled in and copies the source comment below. Attach the image or video you saved, post, then paste the comment. Video (4:5 Feed) gets the most attention in Reddit's feed. On a phone, <b>Share to apps → Reddit</b> attaches the file for you. r/dataisbeautiful removes posts without the source comment within an hour.</p>
         <label class="lbl small">First comment: source and tool</label>` : ''}
       <textarea id="postCaption" style="min-height:170px">${esc(caps[capTab])}</textarea>
       <div class="row"><button class="btn" data-act="copyCaption">Copy text</button><span class="muted" style="flex:none">${caps[capTab].length.toLocaleString()} characters</span></div>

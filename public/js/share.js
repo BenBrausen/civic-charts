@@ -290,4 +290,17 @@
     // Opens an image post with the title filled in; the user attaches the exported image.
     reddit: `https://www.reddit.com/submit?type=IMAGE&title=${encodeURIComponent(text)}`,
   }[platform]);
+
+  // Where a chart fits on Reddit. Local subreddits (r/minnesota) are where county and state maps
+  // travel; r/dataisbeautiful wants an [OC] tag; r/MapPorn takes maps.
+  const STATE_SUB = { DC: 'washingtondc' };
+  PS.redditSubs = (ds, o, caps, state) => {
+    const out = [{ sub: 'dataisbeautiful', why: 'Charts of any topic. [OC] tag and source comment required.', title: caps.redditTitle }];
+    if (o.chart === 'choropleth') out.push({ sub: 'MapPorn', why: 'Maps.', title: caps.redditTitle });
+    // Local subreddits only for state and county data, not a national chart that happens to have a state picked.
+    const st = state && /^us-(states|counties)$/.test(ds.geo || '') && PS.STATE_LIST.find(x => x[0] === state || x[1] === state);
+    if (st) out.unshift({ sub: STATE_SUB[st[0]] || st[2].replace(/\s+/g, ''), why: `Local news and data for ${st[2]}.`, title: caps.redditTitle.replace(/^\[OC\]\s*/, '') });
+    return out;
+  };
+  PS.redditSubmitUrl = (sub, title) => `https://www.reddit.com/r/${encodeURIComponent(sub)}/submit?type=IMAGE&title=${encodeURIComponent(title)}`;
 })(window.PS);

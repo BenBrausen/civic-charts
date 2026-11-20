@@ -300,3 +300,8 @@ body.embed .transport { padding: 2px 10px 2px 2px; border: 0; background: none; 
 .static-links { list-style: none; padding: 0; margin: 0 0 10px; columns: 2; column-gap: 14px; font-size: 13px; }
 .static-links li { margin: 0 0 6px; break-inside: avoid; }
 .static-links a { color: var(--accent); }
+
+/* Reddit: suggested subreddits */
+.reddit-subs { display: grid; gap: 6px; margin: 4px 0 10px; }
+.reddit-sub { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 2px; }
+.reddit-sub small { color: var(--muted); font-weight: 400; }
