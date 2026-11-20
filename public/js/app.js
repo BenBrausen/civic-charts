@@ -239,9 +239,12 @@
         source: S.ds.source, retrieved: S.ds.retrieved, lastObservation: S.ds.lastObservation, firstObservation: cat.firstObservation || null,
         latestText: latestText(cat), released: cat.released || null, page: `${location.origin}/${S.ds.id}/`, link,
         captions: caps, altText: PS.altText(ds, S.analysis, { ...o, title: o.title || S.ds.title }), blocked: (S.integrity?.blocks || []).map(b => b.title),
-        size: o.platform, width: PS.PLATFORMS[o.platform].w, height: PS.PLATFORMS[o.platform].h,
+        size: o.platform, width: PS.PLATFORMS[o.platform].w, height: PS.PLATFORMS[o.platform].h, duration: o.duration,
       },
       image: () => { renderer.draw(1); return renderer.canvas.toDataURL('image/png'); },
+      // One frame at progress p (0..1) as JPEG, for frame-by-frame video encoding (the auto-poster
+      // draws 30 per second of info.duration and encodes them with ffmpeg: smooth, standard H.264).
+      frame: (p, quality = 0.92) => { renderer.draw(Math.max(0, Math.min(1, p))); return renderer.canvas.toDataURL('image/jpeg', quality); },
       // &music=chill|energetic|build|none|auto (default none): original music for auto-posted videos.
       music: () => (qs.get('music') ? (o.music = qs.get('music'), musicMood()) : 'none'),
       video: async () => {
