@@ -1,5 +1,53 @@
 [
  {
+  "id": "state-unemployment",
+  "title": "Unemployment rate by state",
+  "released": "2026-11-20T18:47:27.925Z",
+  "lastObservation": "2026-10-01",
+  "previousObservation": "2026-09-01",
+  "latest": {
+   "t": "2026-10-01",
+   "v": 4.1,
+   "series": "United States"
+  },
+  "previous": {
+   "t": "2026-09-01",
+   "v": 4.2,
+   "series": "United States"
+  },
+  "unit": {
+   "label": "Unemployment rate",
+   "format": "pct",
+   "decimals": 1
+  },
+  "frequency": "monthly",
+  "topic": "economy",
+  "publisher": "U.S. Bureau of Labor Statistics"
+ },
+ {
+  "id": "consumer-sentiment",
+  "title": "U.S. consumer sentiment",
+  "released": "2026-11-20T18:47:27.925Z",
+  "lastObservation": "2026-10-01",
+  "previousObservation": "2026-09-01",
+  "latest": {
+   "t": "2026-10-01",
+   "v": 48
+  },
+  "previous": {
+   "t": "2026-09-01",
+   "v": 48.1
+  },
+  "unit": {
+   "label": "Index of Consumer Sentiment (1966 = 100)",
+   "format": "number",
+   "decimals": 1
+  },
+  "frequency": "monthly",
+  "topic": "economy",
+  "publisher": "University of Michigan"
+ },
+ {
   "id": "state-drought",
   "title": "Drought by state",
   "released": "2026-11-19T20:29:58.653Z",
