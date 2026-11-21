@@ -9,8 +9,10 @@ const SIZES = [
   // LinkedIn Page cover (current spec 1512x256); the logo overlaps the lower left.
   ['linkedin', 1512, 256, { x: 0, y: 0, w: 1512, h: 256 }, { x: 0, y: 120, w: 380, h: 136 }, { textX: 0.27, size: 0.2, oneLine: true, capX: 0.9 }],
   ['youtube', 2560, 1440, { x: 507, y: 508, w: 1546, h: 423 }, null, { size: 0.2 }],
-  // Reddit community banner (1920x384). Phones crop the sides, so text stays in the middle 1440px.
+  // Reddit profile banner (1920x384). Phones crop the sides, so text stays in the middle 1440px.
   ['reddit', 1920, 384, { x: 240, y: 0, w: 1440, h: 384 }, null, { textX: 0.03, size: 0.2, oneLine: true, capX: 0.9 }],
+  // Reddit subreddit banner (10:3). Phones crop the sides, so text stays in the middle.
+  ['reddit-sub', 1920, 576, { x: 240, y: 60, w: 1440, h: 456 }, null, { textX: 0.03, size: 0.2, oneLine: true, capX: 0.9 }],
 ];
 // Decorative skyline: smooth, clearly not data (no axes, no labels).
 function bars(n, seed) {
