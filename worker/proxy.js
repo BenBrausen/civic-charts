@@ -96,10 +96,41 @@ async function media(req, env, name) {
   return new Response(req.method === 'HEAD' ? null : value, { headers: { ...h, 'Content-Type': type, 'Content-Length': String(value.byteLength), 'Cache-Control': 'public, max-age=86400' } });
 }
 
+// ---------- Reddit feed: /feed/reddit.json ----------
+// Reddit no longer gives out API keys, so the Civic Charts app on Reddit's Developer Platform
+// (Devvit) reads this list every 15 minutes and posts new items to each subreddit it's installed
+// on. The auto-poster adds an item (POST /feed/reddit, with the MEDIA_UPLOAD_TOKEN secret) after
+// uploading the video to /media/. Only the newest 50 items are kept; videos expire after 3 days.
+const FEED_MAX = 50;
+async function feed(req, env) {
+  const h = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
+  if (!env.TTS_KV) return new Response('{"error":"storage is not set up"}', { status: 503, headers: h });
+  const items = (await env.TTS_KV.get('feed:reddit', { type: 'json' })) || [];
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return new Response(req.method === 'HEAD' ? null : JSON.stringify({ updated: items[0]?.created || null, items }), { headers: { ...h, 'Cache-Control': 'no-store' } });
+  }
+  if (req.method !== 'POST') return new Response('{"error":"use GET or POST"}', { status: 405, headers: h });
+  if (!env.MEDIA_UPLOAD_TOKEN || req.headers.get('Authorization') !== `Bearer ${env.MEDIA_UPLOAD_TOKEN}`) return new Response('{"error":"not allowed"}', { status: 403, headers: h });
+  let it;
+  try { it = await req.json(); } catch { return new Response('{"error":"send JSON"}', { status: 400, headers: h }); }
+  const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+  const url = v => (/^https:\/\/[^\s]+$/.test(v || '') ? v.slice(0, 500) : '');
+  const item = {
+    id: str(it.id, 120), dataset: str(it.dataset, 80), title: str(it.title, 300), comment: str(it.comment, 9000),
+    page: url(it.page), video: url(it.video), poster: url(it.poster), topic: str(it.topic, 40), geo: str(it.geo, 40),
+    created: new Date().toISOString(),
+  };
+  if (!item.id || !item.title || !item.page) return new Response('{"error":"id, title and page are required"}', { status: 400, headers: h });
+  const next = [item, ...items.filter(x => x.id !== item.id)].slice(0, FEED_MAX);
+  await env.TTS_KV.put('feed:reddit', JSON.stringify(next));
+  return new Response(JSON.stringify({ ok: true, item, count: next.length }), { status: 201, headers: h });
+}
+
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
     if (u.pathname.startsWith('/media/')) return media(req, env, u.pathname.slice(7));
+    if (u.pathname === '/feed/reddit.json' || u.pathname === '/feed/reddit') return feed(req, env);
     if (u.pathname === '/api/tts' || u.pathname === '/api/tts/status') return tts(req, env, ctx, u.pathname);
     let target;
     if (u.pathname === '/api/search') {

@@ -52,6 +52,12 @@ The Worker also serves `/media/<name>.mp4` so Instagram can fetch videos from a 
 The auto-poster uploads with the `MEDIA_UPLOAD_TOKEN` secret (set the same random value on the
 Worker and in the civic-charts-social repo); files live in `TTS_KV` and expire after 3 days.
 
+## Reddit feed (auto-poster)
+
+`/feed/reddit.json` lists the newest 50 posts for the Civic Charts app on Reddit (see
+civic-charts-social/reddit-app). The auto-poster adds to it with the same `MEDIA_UPLOAD_TOKEN`;
+it's stored in `TTS_KV` under `feed:reddit`. Nothing else to set up.
+
 ## 4. Deploy the new Worker code
 
 From a computer with Node, in the repo folder:
