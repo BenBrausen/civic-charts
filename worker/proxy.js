@@ -126,7 +126,29 @@ async function feed(req, env) {
   return new Response(JSON.stringify({ ok: true, item, count: next.length }), { status: 201, headers: h });
 }
 
+// ---------- hourly kick for the auto-poster ----------
+// GitHub drops most scheduled runs on quiet repos, so the poster's posting slots were missed.
+// A Cloudflare Cron Trigger (Settings -> Triggers, "17 14-23,0-1 * * *": hourly in posting hours) starts
+// the "Propose and post" workflow. Needs the secret GH_DISPATCH_TOKEN: a fine-grained GitHub token
+// for the civic-charts-social repo with "Actions: Read and write". Optional: POSTER_REPO and
+// POSTER_WORKFLOW override the defaults below.
+async function kickPoster(env) {
+  if (!env.GH_DISPATCH_TOKEN) return 'GH_DISPATCH_TOKEN not set';
+  const repo = env.POSTER_REPO || 'BenBrausen/civic-charts-social', wf = env.POSTER_WORKFLOW || 'propose.yml';
+  const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${wf}/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'civic-charts-worker', 'X-GitHub-Api-Version': '2022-11-28' },
+    body: JSON.stringify({ ref: 'main' }),
+  });
+  const out = r.status === 204 ? 'started' : `GitHub answered ${r.status} ${(await r.text()).slice(0, 200)}`;
+  console.log('poster kick:', out);
+  return out;
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(kickPoster(env));
+  },
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
     if (u.pathname.startsWith('/media/')) return media(req, env, u.pathname.slice(7));
