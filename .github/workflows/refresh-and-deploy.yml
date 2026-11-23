@@ -68,5 +68,13 @@ jobs:
       - if: vars.PAGES_ENABLED == 'true'
         uses: actions/upload-pages-artifact@v3
         with: { path: _site }
+      # GitHub sometimes can't see the just-uploaded site yet ("No artifacts named github-pages"):
+      # wait a minute and try once more instead of failing the run.
       - if: vars.PAGES_ENABLED == 'true'
+        id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - if: vars.PAGES_ENABLED == 'true' && steps.deploy.outcome == 'failure'
+        run: sleep 60
+      - if: vars.PAGES_ENABLED == 'true' && steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
