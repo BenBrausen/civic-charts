@@ -77,7 +77,42 @@
     return { headline, facts, trend: Math.sign(gap), stats: { first: { t: both[0].t, v: both[0].a }, last: { t: last.t, v: last.a }, peak: { t: pkA.t, v: pkA.a }, trough: { t: last.t, v: last.a }, avg: avgA } };
   }
 
-  function tsFacts(ds, view) {
+  // The auto-poster's angle (&angle= on the render hook): the headline leads with the move that
+  // made this post newsworthy. Computed here from the data, never passed in as text, so every
+  // number is the data's own. Specs: change:N (last N readings), since:YYYY-MM-DD, record.
+  function angleText(spec, pts, ctx) {
+    const { name, u, f, d, v, at } = ctx;
+    const [kind, arg] = String(spec || '').split(':');
+    const n = pts.length, last = pts[n - 1];
+    if (n < 3) return null;
+    const word = { weekly: 'week', daily: 'day', monthly: 'month', quarterly: 'quarter', annual: 'year', fiscal: 'year' }[f] || 'reading';
+    const moved = a => (last.v > a.v ? 'rose' : last.v < a.v ? 'fell' : null);
+    const by = a => PS.fmtChange(a.v, last.v, u).replace(/^[+-]/, '').replace(/\(([+-])/, '(').replace(/ pts$/, ' percentage points');
+    if (kind === 'change') {
+      const h = Math.round(+arg);
+      if (!(h >= 1 && n > h)) return null;
+      const a = pts[n - 1 - h], m = moved(a);
+      if (!m) return null;
+      return `${name} ${m} ${by(a)} over the past ${h === 1 ? word : `${h} ${word}s`}, to ${v(last.v)} ${at} ${d(last.t)}.`;
+    }
+    if (kind === 'since') {
+      const t = Date.parse(arg), a = pts.find(p => p.t >= t);
+      if (!a || a === last) return null;
+      const m = moved(a);
+      return m ? `${name} ${m} ${by(a)} since ${d(a.t)}, to ${v(last.v)} ${at} ${d(last.t)}.` : null;
+    }
+    if (kind === 'record') {
+      const up = last.v >= pts[n - 2].v;
+      let k = n - 2;
+      while (k >= 0 && (up ? pts[k].v < last.v : pts[k].v > last.v)) k--;
+      if (k === n - 2) return null; // not even beyond the previous reading
+      return k < 0 ? `${name} ${up ? 'rose' : 'fell'} to ${v(last.v)} ${at} ${d(last.t)}, the ${up ? 'highest' : 'lowest'} since ${yr(pts[0].t)}.`
+        : `${name} ${up ? 'rose' : 'fell'} to ${v(last.v)} ${at} ${d(last.t)}, the ${up ? 'highest' : 'lowest'} since ${d(pts[k].t)}.`;
+    }
+    return null;
+  }
+
+  function tsFacts(ds, view, o) {
     if (ds.unit.signWords && !ds.combo) return balanceFacts(ds, view);
     if (ds.gap && !ds.combo && view.series.some(s => s.id === ds.gap.a) && view.series.some(s => s.id === ds.gap.b)) return gapFacts(ds, view);
     const s = view.series[0], pts = s.pts, u = ds.unit, f = ds.frequency;
@@ -99,6 +134,8 @@
     else if (u.format === 'usdT' || ds.unit.format === 'usd' && first.v > 0 && last.v / first.v > 1.5)
       headline = `${name} reached ${v(last.v)} ${at} ${d(last.t)}, ${PS.fmtChange(first.v, last.v, u).replace(/^\+/, 'up ')} since ${startY}.`;
     else headline = `${name} was ${v(last.v)} ${at} ${d(last.t)}, ${last.v > avg ? 'above' : 'below'} its ${startY}–${yr(last.t)} average of ${v(avg)}.`;
+    const angle = o?.angle ? angleText(o.angle, pts, { name, u, f, d, v, at }) : null;
+    if (angle) { headline = angle; facts.push({ k: 'angle', text: angle }); }
     facts.push({ k: 'latest', text: `Latest: ${v(last.v)} (${d(last.t)}).` });
     facts.push({ k: 'change', text: `Since ${d(first.t)}: ${PS.fmtChange(first.v, last.v, u)}.` });
     if (peak.t !== last.t) facts.push({ k: 'peak', text: `Peak: ${v(peak.v)} ${at} ${d(peak.t)}.` });
@@ -222,7 +259,7 @@
   PS.analyze = function (ds, o) {
     if (ds.combo) return PS.analyzeCombo(ds, o);
     const view = PS.windowed(ds, o);
-    const r = ds.kind === 'timeseries' ? tsFacts(ds, view) : ds.kind === 'panel' ? panelFacts(ds, view, o) : eventFacts(ds, view);
+    const r = ds.kind === 'timeseries' ? tsFacts(ds, view, o) : ds.kind === 'panel' ? panelFacts(ds, view, o) : eventFacts(ds, view);
     const checks = [];
     const add = (level, title, detail, action) => checks.push({ level, title, detail, action });
 

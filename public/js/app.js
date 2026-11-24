@@ -226,6 +226,9 @@
     if (PS.PLATFORMS[size]) { o.platform = size; o.duration = PS.PLATFORMS[size].dur; }
     if (fmt === 'image' || fmt === 'video') o.format = fmt;
     if (PS.THEMES[qs.get('theme')]) o.theme = qs.get('theme');
+    // &angle=change:4 | since:2026-11-03 | record: lead with the move that made this newsworthy
+    // (the auto-poster's editor picks it; the wording and numbers are computed from the data).
+    if (/^(change:\d{1,3}|since:\d{4}-\d{2}-\d{2}|record)$/.test(qs.get('angle') || '')) o.angle = qs.get('angle');
     o.showSafe = false; pause(); S.p = 1; update();
     await document.fonts.ready; renderer.layout = null; update({ panels: false });
     const ds = S.comboDs || S.ds, link = PS.shareLink(S.ds.id, o, S.state, DEFAULTS, autoOpts());
