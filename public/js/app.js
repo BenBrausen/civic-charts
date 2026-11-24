@@ -248,6 +248,13 @@
       // One frame at progress p (0..1) as JPEG, for frame-by-frame video encoding (the auto-poster
       // draws 30 per second of info.duration and encodes them with ffmpeg: smooth, standard H.264).
       frame: (p, quality = 0.92) => { renderer.draw(Math.max(0, Math.min(1, p))); return renderer.canvas.toDataURL('image/jpeg', quality); },
+      // Carousel slides (chart, rankings for maps, takeaway, how to read, sources) as JPEG data
+      // URLs for Instagram, and the same pages as a PDF (base64) for a LinkedIn document post.
+      carousel: () => PS.carouselPages({ renderer, ds: S.comboDs || S.ds, analysis: S.analysis, o: { ...o, title: o.title || S.ds.title }, link }),
+      carouselPdf: async () => {
+        const blob = await PS.exportCarousel({ renderer, ds: S.comboDs || S.ds, analysis: S.analysis, o: { ...o, title: o.title || S.ds.title }, link });
+        return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1]); fr.readAsDataURL(blob); });
+      },
       // &music=chill|energetic|build|none|auto (default none): original music for auto-posted videos.
       music: () => (qs.get('music') ? (o.music = qs.get('music'), musicMood()) : 'none'),
       video: async () => {

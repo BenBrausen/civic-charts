@@ -126,12 +126,53 @@
     PS.wrap(ctx, footer, W - pad * 2, 4).forEach((l, i) => ctx.fillText(l, pad, H - 170 * S + i * 32 * S));
     return cv.toDataURL('image/jpeg', 0.92);
   }
-  PS.exportCarousel = async ({ renderer, ds, analysis, o, link, vendorBase = '' }) => {
-    await loadScript(`${vendorBase}vendor/jspdf.umd.min.js`);
+  // Ranked list slide ("Highest 5"): name on the left, value on the right, in the chart's look.
+  function rankSlide(st, W, H, heading, rows, footer) {
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d'); const T = st.T, S = W / 1080;
+    ctx.fillStyle = T.bg; ctx.fillRect(0, 0, W, H);
+    const pad = 80 * S; let y = 110 * S;
+    ctx.fillStyle = st.accent; ctx.fillRect(pad, y, 14 * S, 50 * S);
+    ctx.font = `${T.headWeight} ${56 * S}px "${st.head}", serif`; ctx.fillStyle = T.ink; ctx.textBaseline = 'top';
+    PS.wrap(ctx, heading, W - pad * 2 - 30 * S, 2).forEach((l, i) => ctx.fillText(l, pad + 30 * S, y + i * 64 * S)); y += 200 * S;
+    const rowH = Math.min(150 * S, (H - y - 240 * S) / Math.max(1, rows.length));
+    ctx.font = `700 ${40 * S}px "${st.body}", sans-serif`;
+    const nameX = pad + Math.max(90 * S, ...rows.map(r => ctx.measureText(String(r.rank)).width + 30 * S));
+    rows.forEach((r, i) => {
+      const cy = y + i * rowH;
+      ctx.fillStyle = T.muted; ctx.font = `700 ${40 * S}px "${st.body}", sans-serif`; ctx.fillText(String(r.rank), pad, cy + 20 * S);
+      ctx.fillStyle = T.ink; ctx.font = `600 ${42 * S}px "${st.body}", sans-serif`;
+      ctx.fillText(PS.wrap(ctx, r.name, W - nameX - pad - 290 * S, 1)[0], nameX, cy + 20 * S);
+      ctx.textAlign = 'right'; ctx.fillStyle = st.accent; ctx.font = `700 ${44 * S}px "${st.body}", sans-serif`; ctx.fillText(r.value, W - pad, cy + 18 * S); ctx.textAlign = 'left';
+      ctx.fillStyle = T.grid || T.muted; ctx.globalAlpha = 0.35; ctx.fillRect(pad, cy + rowH - 12 * S, W - pad * 2, 2 * S); ctx.globalAlpha = 1;
+    });
+    ctx.font = `400 ${24 * S}px "${st.body}", sans-serif`; ctx.fillStyle = T.muted;
+    PS.wrap(ctx, footer, W - pad * 2, 4).forEach((l, i) => ctx.fillText(l, pad, H - 170 * S + i * 32 * S));
+    return cv.toDataURL('image/jpeg', 0.92);
+  }
+  // The carousel as JPEG data URLs: the chart, then (for maps) the highest and lowest places,
+  // what the data shows, how to read it, and sources. Instagram takes up to 10 images.
+  PS.carouselPages = ({ renderer, ds, analysis, o, link }) => {
     const W = 1080, H = 1350, st = renderer.st;
     renderer.draw(1);
     const pages = [renderer.canvas.toDataURL('image/jpeg', 0.92)];
     const src = `Source: ${sourceText(ds)}. Retrieved ${PS.fmtRetrieved(ds.retrieved)}.`;
+    if (ds.kind === 'panel' && !ds.election) {
+      const view = PS.windowed(ds, o), li = view.idx[view.idx.length - 1];
+      const ranked = ds.entities.filter(PS.rankable(o)).filter(e => e.values[li] != null).sort((a, b) => b.values[li] - a.values[li]);
+      if (ranked.length >= 10) {
+        const when = PS.fmtDate(ds._tms[li], ds.frequency), lbl = (ds.unit.label || ds.title).replace(/\.$/, '');
+        // Shared ranks for ties ("T-40"), and a note when a tie runs past the five shown, so the
+        // slide never implies an order the data doesn't have.
+        const val = e => e.values[li];
+        const rankOf = e => 1 + ranked.filter(x => val(x) > val(e)).length;
+        const tied = e => ranked.filter(x => val(x) === val(e)).length > 1;
+        const row = e => ({ rank: `${tied(e) ? 'T-' : ''}${rankOf(e)}`, name: e.name, value: PS.fmt(val(e), ds.unit) });
+        const more = (shown, rest) => { const last = shown.at(-1), n = rest.filter(x => val(x) === val(last)).length; return n ? [{ rank: '', name: `and ${n} more at ${PS.fmt(val(last), ds.unit)}`, value: '' }] : []; };
+        const top = ranked.slice(0, 5), bottom = ranked.slice(-5).reverse();
+        pages.push(rankSlide(st, W, H, `Highest: ${lbl} (${when})`, [...top.map(row), ...more(top, ranked.slice(5))], src));
+        pages.push(rankSlide(st, W, H, `Lowest: ${lbl} (${when})`, [...bottom.map(row), ...more(bottom, ranked.slice(0, -5))], src));
+      }
+    }
     pages.push(textSlide(st, W, H, 'What the data shows', [{ text: o.takeawayText || analysis.headline, bold: true, size: 40 }, ...(analysis.facts || []).slice(0, 4).map(f => ({ text: f.text, bullet: true, size: 32 }))], src));
     const read = [...(ds.howToRead || []), analysis.howTo].filter(Boolean).slice(0, 2).map(t => ({ text: t, size: 32 }));
     const care = (analysis.checks || []).filter(c => c.level === 'warn' || c.title === 'Context').slice(0, 3).map(c => ({ text: `${c.title}: ${c.detail}`, bullet: true, size: 28, muted: true }));
@@ -141,6 +182,13 @@
       { text: 'Every number on these slides comes from the source data. Nothing is estimated by AI.', size: 30 },
       ...(link ? [{ text: `Rebuild this chart from the official data at ${link.split('#')[0].replace(/^https?:\/\//, '').replace(/\/$/, '')} (full link in the post).`, size: 26, muted: true }] : []),
     ], o.handle ? `${o.handle} · Made with ${PS.SITE}` : `Made with ${PS.SITE}`));
+    return pages;
+  };
+  // LinkedIn carousel: the same pages as a PDF document post.
+  PS.exportCarousel = async ({ renderer, ds, analysis, o, link, vendorBase = '' }) => {
+    await loadScript(`${vendorBase}vendor/jspdf.umd.min.js`);
+    const W = 1080, H = 1350;
+    const pages = PS.carouselPages({ renderer, ds, analysis, o, link });
     const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'px', format: [W, H], hotfixes: ['px_scaling'] });
     pages.forEach((p, i) => { if (i) doc.addPage([W, H], 'portrait'); doc.addImage(p, 'JPEG', 0, 0, W, H); });
     doc.setProperties({ title: o.title, subject: analysis.headline, author: o.handle || 'Civic Charts', keywords: `${ds.source.publisher}, open data`, creator: 'Civic Charts' });
