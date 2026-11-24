@@ -1,5 +1,104 @@
 [
  {
+  "id": "state-hpi",
+  "title": "Home price growth by state",
+  "released": "2026-11-24T22:21:51.522Z",
+  "lastObservation": "2026-07-01",
+  "previousObservation": "2026-04-01",
+  "latest": {
+   "t": "2026-07-01",
+   "v": 723.22,
+   "series": "United States"
+  },
+  "previous": {
+   "t": "2026-04-01",
+   "v": 719.87,
+   "series": "United States"
+  },
+  "unit": {
+   "label": "House price index (1980 = 100)",
+   "format": "number",
+   "decimals": 0
+  },
+  "frequency": "quarterly",
+  "topic": "housing",
+  "publisher": "Federal Housing Finance Agency"
+ },
+ {
+  "id": "state-electricity",
+  "title": "Home electricity prices by state",
+  "released": "2026-11-24T22:21:51.522Z",
+  "lastObservation": "2026-09-01",
+  "previousObservation": "2026-08-01",
+  "latest": {
+   "t": "2026-09-01",
+   "v": 18.05,
+   "series": "United States"
+  },
+  "previous": {
+   "t": "2026-08-01",
+   "v": 18.04,
+   "series": "United States"
+  },
+  "unit": {
+   "label": "Residential price, cents per kWh (12-month average)",
+   "format": "number",
+   "decimals": 1,
+   "suffix": "¢"
+  },
+  "frequency": "monthly",
+  "topic": "prices",
+  "publisher": "U.S. Energy Information Administration"
+ },
+ {
+  "id": "state-electricity-change",
+  "title": "How much home electricity prices rose by state",
+  "released": "2026-11-24T22:21:51.522Z",
+  "lastObservation": "2026-09-01",
+  "previousObservation": "2026-08-01",
+  "latest": {
+   "t": "2026-09-01",
+   "v": 4.3,
+   "series": "United States"
+  },
+  "previous": {
+   "t": "2026-08-01",
+   "v": 3.9,
+   "series": "United States"
+  },
+  "unit": {
+   "label": "Change in residential price from a year earlier (12-month average)",
+   "format": "pct",
+   "decimals": 1
+  },
+  "frequency": "monthly",
+  "topic": "prices",
+  "publisher": "U.S. Energy Information Administration"
+ },
+ {
+  "id": "gas-price",
+  "title": "U.S. gas price",
+  "released": "2026-11-24T22:21:51.522Z",
+  "lastObservation": "2026-11-23",
+  "previousObservation": "2026-11-16",
+  "latest": {
+   "t": "2026-11-23",
+   "v": 3.642
+  },
+  "previous": {
+   "t": "2026-11-16",
+   "v": 3.805
+  },
+  "unit": {
+   "label": "Dollars per gallon",
+   "format": "usd",
+   "decimals": 2
+  },
+  "frequency": "weekly",
+  "topic": "prices",
+  "publisher": "U.S. Energy Information Administration"
+ },
+ {
   "id": "state-unemployment",
   "title": "Unemployment rate by state",
   "released": "2026-11-20T18:47:27.925Z",
