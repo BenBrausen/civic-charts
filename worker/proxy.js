@@ -145,9 +145,27 @@ async function kickPoster(env) {
   return out;
 }
 
+// Weekday mornings (the 14:17 UTC run, 8:17 am Central): also refresh the site's data, so big
+// 7:30 am releases (jobs report, CPI) are picked up within the hour instead of at noon. Uses the
+// same GH_DISPATCH_TOKEN, which then also needs "Actions: Read and write" on the civic-charts repo.
+async function kickRefresh(env) {
+  if (!env.GH_DISPATCH_TOKEN) return 'GH_DISPATCH_TOKEN not set';
+  const repo = env.SITE_REPO || 'BenBrausen/civic-charts';
+  const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/refresh-and-deploy.yml/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'civic-charts-worker', 'X-GitHub-Api-Version': '2022-11-28' },
+    body: JSON.stringify({ ref: 'main' }),
+  });
+  const out = r.status === 204 ? 'started' : `GitHub answered ${r.status} ${(await r.text()).slice(0, 200)}`;
+  console.log('site refresh kick:', out);
+  return out;
+}
+
 export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(kickPoster(env));
+    const t = new Date(event.scheduledTime || Date.now());
+    if (t.getUTCHours() === 14 && t.getUTCDay() >= 1 && t.getUTCDay() <= 5) ctx.waitUntil(kickRefresh(env));
   },
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
