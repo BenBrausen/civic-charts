@@ -246,7 +246,8 @@ async function placeValue(c, place) {
     if (!name) return null;
     const ranked = Object.entries(c.places).sort((a, b) => b[1] - a[1]), rank = 1 + ranked.filter(([, v]) => v > c.places[name]).length;
     const ties = ranked.filter(([, v]) => v === c.places[name]).length;
-    return { place: name, value: c.places[name], asOf: c.placesAsOf, rank, of: ranked.length, tied: ties > 1 };
+    const page = c.statePages ? c.statePages.replace('{state}', name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')) : null;
+    return { place: name, value: c.places[name], asOf: c.placesAsOf, rank, of: ranked.length, tied: ties > 1, page };
   }
   if (c.geo === 'us-counties') {
     const r = await fetch(c.data, { cf: { cacheTtl: 3600, cacheEverything: true } });
@@ -289,14 +290,14 @@ async function callTool(name, a = {}) {
     if (!results.length) return out(`No Civic Charts chart matches "${a.query}". Browse all charts at ${SITE}/.`, { results: [] });
     const withPlace = [];
     for (const c of results) withPlace.push({ ...c, placeValue: county || state ? await placeValue(c, county || state).catch(() => null) : null });
-    const text = withPlace.map(c => `${chartBrief(c)}${c.placeValue ? `\n${c.placeValue.place}: ${fmtVal(c.placeValue.value, c)} as of ${fmtAsOf(c.placeValue.asOf, c)}, ${c.placeValue.tied ? 'tied at ' : ''}#${c.placeValue.rank} of ${c.placeValue.of}.` : ''}\n(id: ${c.id})`).join('\n\n');
+    const text = withPlace.map(c => `${chartBrief(c)}${c.placeValue ? `\n${c.placeValue.place}: ${fmtVal(c.placeValue.value, c)} as of ${fmtAsOf(c.placeValue.asOf, c)}, ${c.placeValue.tied ? 'tied at ' : ''}#${c.placeValue.rank} of ${c.placeValue.of}.${c.placeValue.page ? ` ${c.placeValue.place} page: ${c.placeValue.page}` : ''}` : ''}\n(id: ${c.id})`).join('\n\n');
     return out(text, { results: withPlace.map(c => ({ id: c.id, title: c.title, headline: c.headline, latestText: c.latestText, source: c.source, page: c.page, image: c.image, placeValue: c.placeValue })) });
   }
   if (name === 'get_chart') {
     const c = idx.charts.find(x => x.id === a.id) || searchCharts(idx, a.id || '', 1).results[0];
     if (!c) return { ...out(`No chart with id "${a.id}". Use search_charts first.`, {}), isError: true };
     const pv = a.place ? await placeValue(c, a.place).catch(() => null) : null;
-    const text = [chartBrief(c), pv ? `${pv.place}: ${fmtVal(pv.value, c)} as of ${fmtAsOf(pv.asOf, c)}, ${pv.tied ? 'tied at ' : ''}#${pv.rank} of ${pv.of} (highest = #1).` : a.place ? `No value for "${a.place}" in this chart${c.geo ? '' : ' (it is a national chart)'}.` : '',
+    const text = [chartBrief(c), pv ? `${pv.place}: ${fmtVal(pv.value, c)} as of ${fmtAsOf(pv.asOf, c)}, ${pv.tied ? 'tied at ' : ''}#${pv.rank} of ${pv.of} (highest = #1).${pv.page ? `\n${pv.place} page (answer, trend and all states): ${pv.page}` : ''}` : a.place ? `No value for "${a.place}" in this chart${c.geo ? '' : ' (it is a national chart)'}.` : '',
       c.facts?.length ? `Key facts:\n${c.facts.map(f => `- ${f}`).join('\n')}` : '', c.howToRead ? `How to read it: ${c.howToRead}` : '',
       `Preview image: ${c.image}`, `Raw data (JSON): ${c.data}`].filter(Boolean).join('\n\n');
     return out(text, { ...c, places: undefined, placeValue: pv });

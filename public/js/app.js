@@ -248,6 +248,17 @@
       // One frame at progress p (0..1) as JPEG, for frame-by-frame video encoding (the auto-poster
       // draws 30 per second of info.duration and encodes them with ffmpeg: smooth, standard H.264).
       frame: (p, quality = 0.92) => { renderer.draw(Math.max(0, Math.min(1, p))); return renderer.canvas.toDataURL('image/jpeg', quality); },
+      // Every state's own takeaway for a state map, from the same analysis and checks as the chart
+      // (the state pages at /states/<state>/<chart>/ are built from this).
+      places: () => {
+        const ds = S.ds; if (ds.kind !== 'panel' || ds.geo !== 'us-states') return [];
+        const li = PS.windowed(ds, o).idx.at(-1), byFips = new Map(PS.STATE_LIST.map(x => [x[1], x]));
+        return ds.entities.filter(e => e.values[li] != null && byFips.has(e.id)).map(e => {
+          const a = PS.analyze(ds, { ...o, focus: e.id, highlight: e.id });
+          return { fips: e.id, code: byFips.get(e.id)[0], name: e.name, value: e.values[li], valueText: PS.fmt(e.values[li], ds.unit), headline: a.headline, facts: a.facts.map(f => f.text) };
+        });
+      },
+      usText: () => { const ds = S.ds, li = PS.windowed(ds, o).idx.at(-1), us = ds.national?.values?.[li]; return { us: us != null ? PS.fmt(us, ds.unit) : null, asOf: PS.fmtDate(ds._tms[li], ds.frequency), unit: ds.unit.label || '' }; },
       // Carousel slides (chart, rankings for maps, takeaway, how to read, sources) as JPEG data
       // URLs for Instagram, and the same pages as a PDF (base64) for a LinkedIn document post.
       carousel: () => PS.carouselPages({ renderer, ds: S.comboDs || S.ds, analysis: S.analysis, o: { ...o, title: o.title || S.ds.title }, link }),
@@ -1278,6 +1289,9 @@
     const start = shared?.d || qd || resume?.d || 'us-unemployment';
     if (shared?.s) S.state = shared.s;
     if (resume) S.state = resume.s || '';
+    // ?state=MN opens the chart focused on that state (links from the state pages).
+    const qState = (new URLSearchParams(location.search).get('state') || '').toUpperCase();
+    if (PS.STATE_LIST.some(x => x[0] === qState)) S.state = qState;
     // The homepage stays at / until a dataset is picked; links and saved work open their own page.
     await selectDataset(S.catalog.some(c => c.id === start) ? start : S.catalog[0]?.id, { keepUrl: !shared && !qd && !resume });
     if (resume && S.ds?.id === resume.d) {

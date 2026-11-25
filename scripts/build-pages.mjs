@@ -51,6 +51,8 @@ for (const c of catalog) {
     const png = await page.evaluate(() => window.CC_RENDER.image());
     await fs.mkdir(path.join(SITE, c.id), { recursive: true });
     await fs.writeFile(path.join(SITE, c.id, 'og.png'), Buffer.from(png.split(',')[1], 'base64'));
+    // State maps: every state's own takeaway, for the state pages (/states/<state>/<chart>/).
+    if (c.geo === 'us-states') { info.places = await page.evaluate(() => window.CC_RENDER.places?.() || []); info.us = await page.evaluate(() => window.CC_RENDER.usText?.() || {}); }
     infos[c.id] = info;
     console.log('page', c.id.padEnd(24), cut(info.headline, 70));
   } catch (e) { console.error('FAIL', c.id, e.message); }
@@ -125,10 +127,81 @@ let home = template.replace('</head>', `<link rel="alternate" type="application/
 home = home.replace('<aside class="panel insight" id="insight"></aside>', `<aside class="panel insight" id="insight"><div class="static-intro"><h2>Charts from official public data</h2>${list}</div></aside>`);
 await fs.writeFile(path.join(SITE, 'index.html'), home);
 
+// 4b. State pages: /states/ (all states), /states/<state>/ (every number for one state) and
+// /states/<state>/<chart>/ (one answer: the state's value, rank, trend and the full table).
+// Text comes from the chart's own analysis for that state (same checks as the charts).
+const slug = name => name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+const measureOf = info => info.title.replace(/\s+by state$/i, '').replace(/^State\s+/i, '');
+const STATE_CSS = `:root{--bg:#f6f5f1;--fg:#1b1b1b;--muted:#555;--line:#ddd9cf;--accent:#1d4e89;--hi:#e8f0fb;--box:#fff}@media (prefers-color-scheme:dark){:root{--bg:#161616;--fg:#ececec;--muted:#aaa;--line:#333;--accent:#8db4ff;--hi:#1d2736;--box:#222}}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 system-ui,-apple-system,sans-serif}main{max-width:760px;margin:0 auto;padding:32px 16px 64px}h1{font-size:30px;line-height:1.2;margin:0 0 10px}h2{font-size:20px;margin:30px 0 8px}.answer{font-size:20px;line-height:1.5}.muted{color:var(--muted);font-size:15px}a{color:var(--accent)}nav{margin-bottom:22px;font-size:15px}nav a{text-decoration:none;font-weight:600}table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}td.v,th.v{text-align:right;font-variant-numeric:tabular-nums}tr.me td{background:var(--hi);font-weight:700}.chart{width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:var(--box)}.btn{display:inline-block;padding:10px 14px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;margin:6px 0}ul.list{padding-left:18px}ul.list li{margin:8px 0}footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line)}`;
+const statePage = ({ title, desc, url, image, ld, body }) => `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${esc(url)}"><link rel="icon" href="/favicon.ico" sizes="any">
+<meta property="og:type" content="article"><meta property="og:title" content="${esc(title.replace(/ \| Civic Charts$/, ''))}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${esc(url)}">${image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">` : ''}
+<style>${STATE_CSS}</style>${ld ? `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>` : ''}
+</head><body><main>${body}
+<footer class="muted">Data from official public sources, checked against the numbers before publishing. <a href="/about/">About Civic Charts</a> · <a href="/">All charts</a> · <a href="mailto:corrections@civiccharts.com">Report an error</a></footer>
+</main></body></html>
+`;
+const stateCharts = catalog.filter(c => c.geo === 'us-states' && infos[c.id]?.places?.length && (!c.reframes || c.reframes[0] === c.id));
+const states = new Map(); // code -> { name, slug, items: [{ c, info, p }] }
+for (const c of stateCharts) for (const p of infos[c.id].places) {
+  const st = states.get(p.code) || { name: p.name, slug: slug(p.name), items: [] };
+  st.items.push({ c, info: infos[c.id], p }); states.set(p.code, st);
+}
+const stateUrls = [];
+for (const [code, st] of [...states].sort((a, b) => a[1].name.localeCompare(b[1].name))) {
+  const dir = path.join(SITE, 'states', st.slug);
+  for (const { c, info, p } of st.items) {
+    const measure = measureOf(info), url = `${ORIGIN}/states/${st.slug}/${c.id}/`, src = info.source || {};
+    const ranked = info.places.slice().sort((a, b) => b.value - a.value);
+    const rankOf = x => 1 + ranked.filter(y => y.value > x.value).length, tied = x => ranked.filter(y => y.value === x.value).length > 1;
+    const rows = ranked.map(x => `<tr${x.code === code ? ' class="me"' : ''}><td>${tied(x) ? 'T-' : ''}${rankOf(x)}</td><td>${x.code === code ? esc(x.name) : `<a href="/states/${slug(x.name)}/${c.id}/">${esc(x.name)}</a>`}</td><td class="v">${esc(x.valueText)}</td></tr>`).join('');
+    const facts = p.facts.filter(f => !/^Latest:/.test(f)).slice(0, 4).map(f => `<li>${esc(f)}</li>`).join('');
+    const title = `${st.name} ${measure}: ${p.valueText} (${info.us?.asOf || ''}) | Civic Charts`;
+    const body = `<nav><a href="/">Civic Charts</a> › <a href="/states/">States</a> › <a href="/states/${st.slug}/">${esc(st.name)}</a></nav>
+<h1>${esc(measure)} in ${esc(st.name)}</h1>
+<p class="answer">${esc(p.headline)}</p>
+<a class="btn" href="/${c.id}/?state=${code}">Open the interactive chart for ${esc(st.name)}</a>
+<h2>Key facts</h2><ul class="list">${facts}</ul>
+${info.howToRead?.length ? `<p><b>How to read it:</b> ${esc(info.howToRead.join(' '))}</p>` : ''}
+<h2>All states (${esc(info.us?.asOf || '')})</h2>
+<table><thead><tr><th>Rank</th><th>State</th><th class="v">${esc(info.us?.unit || 'Value')}</th></tr></thead><tbody>${rows}</tbody></table>
+${info.us?.us ? `<p class="muted">U.S.: ${esc(info.us.us)}. Rank 1 is the highest value; "T-" marks a tie.</p>` : '<p class="muted">Rank 1 is the highest value; "T-" marks a tie.</p>'}
+<h2>Source</h2><p class="muted">${src.url ? `<a href="${esc(src.url)}" rel="noopener">${esc(src.publisher)}</a>` : esc(src.publisher)}${src.dataset ? `, ${esc(src.dataset)}` : ''}. Retrieved ${esc(String(info.retrieved || '').slice(0, 10))}, updated automatically. <a href="/about/#how-every-chart-is-checked">How we check the data</a>.</p>
+<p class="muted">Cite: Civic Charts. "${esc(measure)} in ${esc(st.name)}." Data: ${esc(src.publisher)}. ${url}</p>
+<p><a href="/states/${st.slug}/">More ${esc(st.name)} numbers</a> · <a href="/${c.id}/">${esc(info.title)}, all states</a></p>`;
+    const ld = { '@context': 'https://schema.org', '@type': 'Dataset', name: `${measure} in ${st.name}`, description: p.headline, url, isAccessibleForFree: true,
+      spatialCoverage: { '@type': 'Place', name: `${st.name}, United States` }, creator: { '@type': 'Organization', name: src.publisher }, ...(src.url ? { isBasedOn: src.url } : {}),
+      includedInDataCatalog: { '@type': 'DataCatalog', name: 'Civic Charts', url: ORIGIN + '/' }, dateModified: String(info.retrieved || '').slice(0, 10) || undefined };
+    await fs.mkdir(path.join(dir, c.id), { recursive: true });
+    await fs.writeFile(path.join(dir, c.id, 'index.html'), statePage({ title, desc: cut(`${p.headline} Source: ${src.publisher}.`, 158), url, image: `${ORIGIN}/${c.id}/og.png`, ld, body }));
+    stateUrls.push(url);
+  }
+  // The state's hub: every number, grouped by topic.
+  const byT = {};
+  for (const it of st.items) (byT[topicName(it.c.topic)] ||= []).push(it);
+  // Most-looked-up topics first.
+  const ORDER = ['economy', 'prices', 'housing', 'health', 'people', 'environment', 'safety', 'government', 'technology', 'elections', 'world'];
+  const rankT = t => { const i = ORDER.indexOf(st.items.find(x => topicName(x.c.topic) === t)?.c.topic); return i < 0 ? 99 : i; };
+  const sections = Object.entries(byT).sort((a, b) => rankT(a[0]) - rankT(b[0]) || a[0].localeCompare(b[0])).map(([t, its]) => `<h2>${esc(t)}</h2><ul class="list">${its.map(({ c, info, p }) => `<li><a href="/states/${st.slug}/${c.id}/"><b>${esc(measureOf(info))}</b></a>: ${esc(p.headline)}</li>`).join('')}</ul>`).join('');
+  const hubUrl = `${ORIGIN}/states/${st.slug}/`;
+  await fs.writeFile(path.join(dir, 'index.html'), statePage({ title: `${st.name} by the Numbers: Jobs, Wages, Housing and More | Civic Charts`,
+    desc: `The latest official numbers for ${st.name}: ${st.items.slice(0, 4).map(x => measureOf(x.info).toLowerCase()).join(', ')} and more, each with its rank among states and its source.`, url: hubUrl,
+    body: `<nav><a href="/">Civic Charts</a> › <a href="/states/">States</a></nav><h1>${esc(st.name)} by the numbers</h1><p class="answer">The latest official data for ${esc(st.name)}, compared with every state and the U.S. ${st.items.length} measures, each from its original source.</p>${sections}` }));
+  stateUrls.push(hubUrl);
+}
+await fs.mkdir(path.join(SITE, 'states'), { recursive: true });
+await fs.writeFile(path.join(SITE, 'states', 'index.html'), statePage({ title: 'Data by State: The Latest Official Numbers for Every State | Civic Charts',
+  desc: 'Pick a state for its latest official numbers on jobs, wages, housing, health and more, each ranked against every state with its source.', url: `${ORIGIN}/states/`,
+  body: `<nav><a href="/">Civic Charts</a></nav><h1>Data by state</h1><p class="answer">Pick a state for its latest official numbers, each ranked against every state, with the source.</p><ul class="list">${[...states.values()].sort((a, b) => a.name.localeCompare(b.name)).map(st => `<li><a href="/states/${st.slug}/">${esc(st.name)}</a></li>`).join('')}</ul>` }));
+stateUrls.push(`${ORIGIN}/states/`);
+
 // 5. Sitemap with every page.
 const day = t => String(t || '').slice(0, 10);
 const urls = [`  <url><loc>${ORIGIN}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-  ...catalog.filter(c => infos[c.id]).map(c => `  <url><loc>${ORIGIN}/${c.id}/</loc>${day(c.released || c.retrieved) ? `<lastmod>${day(c.released || c.retrieved)}</lastmod>` : ''}<changefreq>${['weekly', 'real-time'].includes(c.frequency) ? 'daily' : 'weekly'}</changefreq></url>`)];
+  ...catalog.filter(c => infos[c.id]).map(c => `  <url><loc>${ORIGIN}/${c.id}/</loc>${day(c.released || c.retrieved) ? `<lastmod>${day(c.released || c.retrieved)}</lastmod>` : ''}<changefreq>${['weekly', 'real-time'].includes(c.frequency) ? 'daily' : 'weekly'}</changefreq></url>`),
+  ...stateUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq></url>`),
+  ...['about', 'changelog'].map(p => `  <url><loc>${ORIGIN}/${p}/</loc></url>`)];
 await fs.writeFile(path.join(SITE, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
 
 // 6. RSS feed of new releases. The newest release of each dataset carries its current headline.
@@ -180,6 +253,7 @@ for (const c of catalog) {
       const li = (ds.times || []).length - 1;
       if (li >= 0) item.places = Object.fromEntries((ds.entities || []).filter(e => e.values?.[li] != null).map(e => [e.name, e.values[li]]));
       item.placesAsOf = ds.times?.[li] ?? null;
+      if (stateCharts.some(x => x.id === c.id)) item.statePages = `${ORIGIN}/states/{state}/${c.id}/`;
     } catch { /* no per-state values */ }
   }
   ai.push(item);

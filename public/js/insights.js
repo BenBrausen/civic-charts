@@ -198,13 +198,15 @@
     // A chosen state leads the story.
     const fe = o.focus && ds.entities.find(e => e.id === o.focus);
     if (fe && fe.values[li] != null) {
-      const val = fe.values[li], rank = now.findIndex(x => x.e.id === fe.id) + 1, n = now.length;
+      // Ties share a rank ("tied for 14th highest"), counted from the top or the bottom.
+      const val = fe.values[li], n = now.length, above = now.filter(x => x.v > val).length, below = now.filter(x => x.v < val).length;
+      const tied = now.filter(x => x.v === val).length > 1, rank = above + 1;
       const us = ds.national?.values[li];
       const ord = k => k + (['th', 'st', 'nd', 'rd'][(k % 100 > 10 && k % 100 < 14) ? 0 : Math.min(k % 10, 4) % 4] || 'th');
-      const pos = rank === 1 ? `the highest of ${n}` : rank === n ? `the lowest of ${n}` : rank <= n / 2 ? `${ord(rank)} highest of ${n}` : `${ord(n - rank + 1)} lowest of ${n}`;
+      const pos = above === 0 ? `the highest of ${n}` : below === 0 ? `the lowest of ${n}` : rank <= n / 2 ? `${ord(rank)} highest of ${n}` : `${ord(below + 1)} lowest of ${n}`;
       const cmp = us != null ? `${val > us ? 'above' : val < us ? 'below' : 'equal to'} the U.S. (${v(us)})` : `compared with a typical ${ds.geo === 'world' ? 'country' : 'state'} at ${v(vals0(now))}`;
       const on = ['weekly', 'daily', 'real-time'].includes(ds.frequency) ? 'on' : 'in'; // "on November 10, 2026", "in 2025"
-      headline = `${fe.name}'s ${lbl} was ${v(val)} ${on} ${d(li)}, ${cmp}. It ranks ${pos}.`;
+      headline = `${fe.name}'s ${lbl} was ${v(val)} ${on} ${d(li)}, ${cmp}. ${tied ? `It's tied for ${pos}` : `It ranks ${pos}`}.`;
       const fa = fe.values[fi];
       if (fi !== li && fa != null) facts.push({ k: 'focus', text: `${fe.name} since ${PS.fmtDate(ds._tms[fi], f)}: ${PS.fmtChange(fa, val, u)}${us != null && ds.national.values[fi] != null ? ` (U.S.: ${PS.fmtChange(ds.national.values[fi], us, u)})` : ''}.` });
     }

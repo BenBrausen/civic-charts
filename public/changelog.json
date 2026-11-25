@@ -2,6 +2,16 @@
   {
     "date": "2026-11-25",
     "major": true,
+    "title": "Your state, by the numbers",
+    "text": "Every state now has its own pages: the latest jobs, wages, housing, health and other numbers, each ranked against every state with its source (civiccharts.com/states/)."
+  },
+  {
+    "date": "2026-11-25",
+    "title": "Fixed: state rankings now show ties"
+  },
+  {
+    "date": "2026-11-25",
+    "major": true,
     "title": "About page",
     "text": "Where the data comes from, how every chart is checked, how corrections work, and how to get the most from the site."
   },
