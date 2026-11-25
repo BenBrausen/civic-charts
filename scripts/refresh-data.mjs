@@ -681,6 +681,12 @@ builders['broadband'] = async () => {
     }
     if (m.size > 3000) { byYear.set(y, m); console.log(`  ACS ${y}: ${m.size} geographies`); }
   }
+  // 2017-2020 (the first 5-year releases with this table) through the Census API, with a key.
+  for (let y = 2017; y < 2021; y++) {
+    if (prevYears.has(y)) continue;
+    const m = await acsApiYear(y, ['B28002_001E', 'B28002_004E', 'B28002_013E']);
+    if (m) { byYear.set(y, new Map([...m].map(([k, [tot, bb, none]]) => [k, { tot, bb, none }]))); console.log(`  ACS ${y} B28002 (API): ${m.size} geographies`); }
+  }
   const years = [...new Set([...prevYears, ...byYear.keys()])].sort();
   if (!years.length) throw new Error('No ACS B28002 files found');
   // Pull a value for (dataset, entity, year): fresh file if fetched this run, else the previous snapshot.
