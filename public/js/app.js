@@ -912,6 +912,23 @@
       if (county) { o.focus = county; o.highlight = county; o.takeawayText = ''; update(); renderStep(); }
       if (window.innerWidth < 900) document.querySelector('.stage, #stage, main')?.scrollIntoView({ behavior: 'smooth' });
     },
+    rangePreset: t => {
+      const f = t.dataset.from, to = t.dataset.to;
+      o.rangeStart = f ? Date.UTC(+f, 0, 1) : null; o.rangeEnd = to ? Date.UTC(+to, 11, 31, 23) : null;
+      o.subtitle = autoSubtitle(S.ds); update(); renderStep();
+    },
+    suggestCompare: async t => {
+      const id = t.dataset.id;
+      try {
+        if (!S.compareDs.has(id)) S.compareDs.set(id, await PS.loadDataset(id));
+        const parts = [viewOf(S.ds), ...o.compare.map(x => viewOf(S.compareDs.get(x)))];
+        const fit = PS.compatibility(parts, viewOf(S.compareDs.get(id)), comboOpts());
+        if (!fit.ok) { toast(`Can't chart these together: ${fit.reason}`); return; }
+        PS.track('add_compare', { compare_id: id, suggested: true });
+        o.compare.push(id); o.combineMethod = ''; S.picker = null; update(); renderStep();
+        toast(`Added ${S.catalog.find(c => c.id === id)?.title || id}. Pick how to show them in Chart options.`);
+      } catch (e) { toast(`Couldn't load that dataset: ${e.message}`); }
+    },
     toggleNational: () => { S.showNational = !S.showNational; renderStep(); },
     cite: () => {
       const ds = S.ds, src = ds.source || {}, day = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -1006,11 +1023,23 @@
   const OUTFMT = { duration: v => v + 's', radius: v => (v === 0 ? 'Square' : v >= 20 ? 'Round' : v + 'px'), lineWidth: v => v + 'px', textScale: v => Math.round(v * 100) + '%', topN: v => v };
 
   // ---------- step: chart ----------
+  // Time range: show a specific stretch of years ("1980-2000"). Presets for the common ones; the
+  // trust check warns if a shorter range flips the long-term trend.
+  function rangeHTML(ds) {
+    if (!ds || ds.kind === 'events' || ds.singleTime) return '';
+    const [a, b] = timeBounds(ds), y0 = yearOf(a), y1 = yearOf(b);
+    if (y1 - y0 < 2) return '';
+    const years = d3.range(y0, y1 + 1);
+    const sv = o.rangeStart != null ? yearOf(o.rangeStart) : '', ev = o.rangeEnd != null ? yearOf(o.rangeEnd) : '';
+    const preset = (label, from, to) => (from >= y0 && from < y1 ? `<button class="chip ${sv === (from === y0 ? '' : from) && ev === (to ?? '') ? 'active' : ''}" data-act="rangePreset" data-from="${from === y0 ? '' : from}" data-to="${to ?? ''}">${label}</button>` : '');
+    const chips = [preset(`All (${y0}–${y1})`, y0), preset('Last 10 years', y1 - 9), preset('Last 20 years', y1 - 19), y0 < 2000 ? preset('Since 2000', 2000) : ''].join('');
+    return field('Time range', `<div class="chips">${chips}</div><div class="row" style="margin-top:8px"><select id="rs" aria-label="From"><option value="">From ${y0}</option>${years.map(y => `<option ${y === sv ? 'selected' : ''}>${y}</option>`).join('')}</select><select id="re" aria-label="To"><option value="">To ${y1}</option>${years.map(y => `<option ${y === ev ? 'selected' : ''}>${y}</option>`).join('')}</select></div><p class="muted">Show a specific stretch of years. The title and source line say which years are shown, and Civic Charts warns you if a shorter range flips the long-term trend.</p>`);
+  }
   STEPS.chart = () => {
     if (!S.ds) return '<p class="muted">Pick data first.</p>';
     const ds = S.ds;
     const charts = PS.chartsFor(ds);
-    let html = compareHTML();
+    let html = rangeHTML(S.comboDs || S.ds) + compareHTML();
     if (S.combo) {
       const ICON = { shared: 'M3 17l5-6 4 3 7-9M3 19l5-3 4 1 7-5', indexed: 'M3 12h18M3 17l6-6 4 2 8-8', stacked: 'M3 9l5-3 4 2 8-4M3 20l5-4 4 2 8-5', scatter: 'M6 17a1 1 0 1 0 0 .1M10 12a1 1 0 1 0 0 .1M15 9a1 1 0 1 0 0 .1M18 5a1 1 0 1 0 0 .1' };
       const DESC = { shared: 'Same unit and scale: one axis, read values directly', indexed: 'Different units: both start at 100, compare growth', stacked: 'Different units: own scales, shared timeline', scatter: 'One dot per place: is there a pattern?' };
@@ -1038,19 +1067,63 @@
     if (['line', 'area'].includes(o.chart)) html += check('zeroBase', 'Start axis at zero (recommended)') + check('annotate', 'Label the peak');
     if (o.chart === 'columns' && ds.kind !== 'events') html += check('highlightLast', 'Highlight latest year');
     if (o.chart === 'choropleth') html += check('colorZero', 'Color scale starts at zero');
-    if (ds.kind !== 'events' && !ds.singleTime) {
-      const [a, b] = timeBounds(ds), y0 = yearOf(a), y1 = yearOf(b);
-      const years = d3.range(y0, y1 + 1);
-      const sv = o.rangeStart != null ? yearOf(o.rangeStart) : '', ev = o.rangeEnd != null ? yearOf(o.rangeEnd) : '';
-      html += field('Time range', `<div class="row"><select id="rs"><option value="">From ${y0}</option>${years.map(y => `<option ${y === sv ? 'selected' : ''}>${y}</option>`).join('')}</select><select id="re"><option value="">To ${y1}</option>${years.map(y => `<option ${y === ev ? 'selected' : ''}>${y}</option>`).join('')}</select></div><p class="muted">Civic Charts warns you if a shorter range flips the long-term trend.</p>`);
-    }
+    // (Time range is shown first in Chart options; see rangeHTML.)
     html += '<h3>Motion</h3>' + field('Pacing', select('motion', [['steady', 'Steady (best for reading values)'], ['smooth', 'Smooth (eases in and out)']]));
     return html;
   };
+  // ---------- suggested comparisons ----------
+  // Datasets that people often look at together, and why. Related isn't proof of cause; the
+  // compare checks still decide whether and how two datasets can share a chart.
+  const PAIRS = [
+    ['us-unemployment', 'job-postings', 'Job openings and unemployment usually move in opposite directions.'],
+    ['us-unemployment', 'consumer-sentiment', 'People tend to feel worse about the economy when unemployment rises.'],
+    ['us-inflation', 'wages-vs-inflation', 'Whether pay is keeping up with prices.'],
+    ['us-inflation', 'gas-price', 'Gas is one of the most visible parts of inflation.'],
+    ['us-inflation', 'mortgage-rate', 'Mortgage rates usually rise when inflation does.'],
+    ['us-inflation', 'grocery-prices', 'Food is one of the prices people notice most.'],
+    ['gas-price', 'consumer-sentiment', 'Gas prices are one of the things people notice most about the economy.'],
+    ['mortgage-rate', 'home-price', 'Higher rates make the same home cost more each month.'],
+    ['real-wages', 'consumer-sentiment', 'How people feel often tracks whether their pay buys more.'],
+    ['federal-deficit', 'federal-interest', 'Bigger deficits mean more debt to pay interest on.'],
+    ['federal-debt', 'federal-interest', 'Interest costs grow with the debt and with interest rates.'],
+    ['state-unemployment', 'state-income', 'Jobs and pay often go together across states.'],
+    ['state-income', 'state-rent', 'Rent tends to be higher where incomes are.'],
+    ['state-income', 'state-home-values', 'Home values tend to be higher where incomes are.'],
+    ['state-home-values', 'state-rent', 'Buying and renting costs usually rise together.'],
+    ['state-income', 'state-broadband', 'Internet access often tracks income.'],
+    ['state-unemployment', 'state-violent-crime', 'Often compared, though the link is debated.'],
+    ['state-drought', 'state-temperature', 'Hotter years often bring more drought.'],
+    ['state-unemployment', 'overdose-rate', 'Often studied together in research on economic hardship.'],
+    ['state-electricity', 'state-income', 'What power costs, next to what people earn.'],
+    ['state-permits', 'state-home-values', 'Where more homes get built, and what homes cost.'],
+    ['county-poverty', 'county-uninsured', 'Places with more poverty often have more people without health insurance.'],
+    ['county-poverty', 'county-broadband', 'Places with more poverty often have less internet access.'],
+    ['county-income', 'county-broadband', 'Internet access often tracks income.'],
+    ['county-income', 'county-rent', 'Rent tends to be higher where incomes are.'],
+    ['county-income', 'county-home-value', 'Home values tend to be higher where incomes are.'],
+    ['county-obesity', 'county-diabetes', 'Obesity is a major risk factor for diabetes.'],
+    ['county-smoking', 'county-depression', 'Often studied together in public health research.'],
+    ['county-poverty', 'county-obesity', 'Poverty and obesity often go together.'],
+    ['county-65plus', 'county-natural-change', 'Older places tend to have more deaths than births.'],
+  ];
+  function suggestionsFor(id) {
+    const have = new Set([id, ...(o.compare || [])]), out = [];
+    for (const [a, b, why] of PAIRS) {
+      const other = a === id ? b : b === id ? a : null;
+      if (other && !have.has(other) && S.catalog.some(c => c.id === other) && !out.some(x => x.id === other)) out.push({ id: other, why, title: S.catalog.find(c => c.id === other).title });
+    }
+    return out.slice(0, 4);
+  }
+  function suggestHTML() {
+    if (!S.ds || EMBED || RENDER || S.ds.combo) return '';
+    const list = suggestionsFor(S.ds.id);
+    if (!list.length) return '';
+    return `<div class="suggest"><h3>Often looked at together</h3>${list.map(x => `<button class="cmp ok" data-act="suggestCompare" data-id="${x.id}"><b>+ ${esc(x.title)}</b><span>${esc(x.why)}</span></button>`).join('')}<p class="muted">Related doesn't mean one causes the other. Civic Charts checks that each pairing is fair before it's charted.</p></div>`;
+  }
   function compareHTML() {
     const chips = o.compare.map(id => { const c = S.catalog.find(x => x.id === id) || S.custom.find(x => x.id === id); return `<span class="cmp-chip">${esc(c?.title || id)}<button data-uncompare="${id}" aria-label="Remove">✕</button></span>`; }).join('');
     let h = `<h3>Compare with another dataset</h3><div class="cmp-box"><div class="cmp-chips"><span class="cmp-chip main">${esc(S.ds.title)}</span>${chips}</div>`;
-    if (!S.picker) h += `<button class="btn block" data-act="openCompare">+ Add a dataset to compare</button>`;
+    if (!S.picker) h += `${suggestHTML()}<button class="btn block" data-act="openCompare">+ Add a dataset to compare</button>`;
     else if (S.picker === 'loading') h += '<p class="muted">Checking which datasets fit…</p>';
     else {
       const ok = S.picker.filter(x => x.ok), no = S.picker.filter(x => !x.ok);
@@ -1321,6 +1394,7 @@
       <h2>Trust check</h2><div class="trust-score"><b>${pass}</b> passed · <b>${warn}</b> to review${S.integrity?.blocks.length ? ` · <b class="bad">${S.integrity.blocks.length}</b> blocking export` : ''}</div>
       <ul class="checks">${a.checks.map(c => `<li><span class="ic ${c.level}">${c.level === 'pass' ? '✓' : c.level === 'warn' ? '!' : c.level === 'block' ? '✕' : 'i'}</span><div><b>${esc(c.title)}</b><p>${esc(c.detail)}</p>${c.action ? actionBtn(c.action) : ''}${c.fixAct ? `<button class="btn" data-act="${c.fixAct.act}" data-field="${c.fixAct.field || ''}">${esc(c.fixAct.label)}</button>` : ''}</div></li>`).join('')}</ul>
       <details><summary>View the data</summary>${table}</details>
+      ${!o.compare?.length ? suggestHTML() : ''}
       <div id="latestVideo"></div>
       ${ds.source.url ? `<p class="muted">Original source: <a href="${esc(ds.source.url)}" target="_blank" rel="noopener">${esc(ds.source.publisher)} ↗</a></p>` : ''}
       ${S.ds?.id && !String(S.ds.id).startsWith('custom-') ? `<p class="muted"><button class="linkbtn" data-act="cite">Cite this chart</button> · <a href="/about/#how-every-chart-is-checked">How we check the data</a></p>` : ''}
