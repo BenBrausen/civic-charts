@@ -73,7 +73,8 @@ function staticBody(c, info) {
   const src = info.source || {};
   const rel = related(c).map(x => `<li><a href="/${x.id}/">${esc(infos[x.id].title)}</a></li>`).join('');
   return `<div class="static-intro"><h2>${esc(info.title)}</h2><p class="headline">${esc(info.headline)}</p><ul class="facts">${facts}</ul>${read}
-<p class="muted">Source: ${src.url ? `<a href="${esc(src.url)}" rel="noopener">${esc(src.publisher)}</a>` : esc(src.publisher)}${src.dataset ? ', ' + esc(src.dataset) : ''}. Updated automatically from the official data.</p>
+<p class="muted">Source: ${src.url ? `<a href="${esc(src.url)}" rel="noopener">${esc(src.publisher)}</a>` : esc(src.publisher)}${src.dataset ? ', ' + esc(src.dataset) : ''}. Updated automatically from the official data. <a href="/about/#how-every-chart-is-checked">How we check the data</a>.</p>
+<p class="muted">Cite: Civic Charts. "${esc(info.title)}." Data: ${esc(src.publisher)}${src.dataset ? ', ' + esc(src.dataset) : ''}. ${ORIGIN}/${c.id}/</p>
 ${rel ? `<h2>More ${esc(topicName(c.topic).toLowerCase())} charts</h2><ul class="static-links">${rel}</ul>` : ''}<p><a href="/">All charts on Civic Charts</a></p></div>`;
 }
 function datasetLd(c, info) {

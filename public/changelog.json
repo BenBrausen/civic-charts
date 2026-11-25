@@ -1,6 +1,17 @@
 [
   {
     "date": "2026-11-25",
+    "major": true,
+    "title": "About page",
+    "text": "Where the data comes from, how every chart is checked, how corrections work, and how to get the most from the site."
+  },
+  {
+    "date": "2026-11-25",
+    "title": "Cite this chart",
+    "text": "One tap copies a ready citation with the chart, its source and link, for articles, school work or posts."
+  },
+  {
+    "date": "2026-11-25",
     "title": "This changelog",
     "text": "See what's new on Civic Charts, newest first."
   },

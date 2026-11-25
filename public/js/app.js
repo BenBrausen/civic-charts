@@ -762,6 +762,13 @@
       await PS.download(new Blob([PS.toCsv(head, rows, { ...ds, title: o.title || S.ds.title })], { type: 'text/csv' }), `${PS.slug(o.title)}-data.csv`);
       toast(`Data saved: ${rows.length.toLocaleString()} rows, with the source on top.`);
     },
+    // A ready citation for articles, school work and posts: chart, source, page link, date.
+    cite: () => {
+      const ds = S.ds, src = ds.source || {}, day = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const text = `Civic Charts. "${o.title || ds.title}." Data: ${src.publisher}${src.dataset ? `, ${src.dataset}` : ''}. ${location.origin}/${ds.id}/ (accessed ${day}).`;
+      PS.track('copy', { what: 'citation' });
+      copy(text, 'Citation copied.');
+    },
     copyEmbed: async () => { PS.track('share', { method: 'embed_code', content_type: 'chart' }); const v = $('#embedCode')?.value; if (!v) return; try { await navigator.clipboard.writeText(v); toast('Embed code copied.'); } catch { $('#embedCode').select(); } },
     srt: async () => { if (gate()) return; await PS.download(new Blob([PS.srt(o.script, o.duration)], { type: 'text/plain' }), `${PS.slug(o.title)}.srt`); toast('Captions file saved. Upload it with the video on LinkedIn or Facebook.'); },
     shareApps: async () => { PS.track('share', { method: 'share_sheet', content_type: 'chart' });
@@ -1165,6 +1172,7 @@
       <ul class="checks">${a.checks.map(c => `<li><span class="ic ${c.level}">${c.level === 'pass' ? '✓' : c.level === 'warn' ? '!' : c.level === 'block' ? '✕' : 'i'}</span><div><b>${esc(c.title)}</b><p>${esc(c.detail)}</p>${c.action ? actionBtn(c.action) : ''}${c.fixAct ? `<button class="btn" data-act="${c.fixAct.act}" data-field="${c.fixAct.field || ''}">${esc(c.fixAct.label)}</button>` : ''}</div></li>`).join('')}</ul>
       <details><summary>View the data</summary>${table}</details>
       ${ds.source.url ? `<p class="muted">Original source: <a href="${esc(ds.source.url)}" target="_blank" rel="noopener">${esc(ds.source.publisher)} ↗</a></p>` : ''}
+      ${S.ds?.id && !String(S.ds.id).startsWith('custom-') ? `<p class="muted"><button class="linkbtn" data-act="cite">Cite this chart</button> · <a href="/about/#how-every-chart-is-checked">How we check the data</a></p>` : ''}
       ${siteFoot()}`;
   }
   // Corrections and contact. The correction email arrives pre-filled with the chart and its link.
@@ -1173,7 +1181,7 @@
     const subj = encodeURIComponent(`Correction: ${o.title || S.ds?.title || 'Civic Charts'}`);
     const body = encodeURIComponent(`Chart: ${o.title || S.ds?.title || ''}\n${link ? 'Link: ' + link + '\n' : ''}\nWhat looks wrong:\n\n`);
     return `<div class="site-foot"><p><b>Spot an error?</b> Email <a data-contact="corrections" href="mailto:${PS.CONTACT.corrections}?subject=${subj}&body=${body}">${PS.CONTACT.corrections}</a>. We review every report and correct any errors we find.</p>
-      <p class="muted">Questions, ideas or data you'd like to see: <a data-contact="hello" href="mailto:${PS.CONTACT.hello}">${PS.CONTACT.hello}</a> · <a href="/changelog/">What's new</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p>
+      <p class="muted">Questions, ideas or data you'd like to see: <a data-contact="hello" href="mailto:${PS.CONTACT.hello}">${PS.CONTACT.hello}</a> · <a href="/about/">About</a> · <a href="/changelog/">What's new</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p>
       ${PS.SOCIAL.length ? `<p class="follow"><b>Follow Civic Charts:</b> ${PS.SOCIAL.map(s => `<a data-social="${s.id}" href="${s.url}" target="_blank" rel="noopener me">${s.name}</a>`).join(' · ')}</p>` : ''}</div>`;
   }
   $('#insight').addEventListener('click', e => {
