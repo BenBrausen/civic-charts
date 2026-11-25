@@ -1182,9 +1182,28 @@
       <h2>Trust check</h2><div class="trust-score"><b>${pass}</b> passed · <b>${warn}</b> to review${S.integrity?.blocks.length ? ` · <b class="bad">${S.integrity.blocks.length}</b> blocking export` : ''}</div>
       <ul class="checks">${a.checks.map(c => `<li><span class="ic ${c.level}">${c.level === 'pass' ? '✓' : c.level === 'warn' ? '!' : c.level === 'block' ? '✕' : 'i'}</span><div><b>${esc(c.title)}</b><p>${esc(c.detail)}</p>${c.action ? actionBtn(c.action) : ''}${c.fixAct ? `<button class="btn" data-act="${c.fixAct.act}" data-field="${c.fixAct.field || ''}">${esc(c.fixAct.label)}</button>` : ''}</div></li>`).join('')}</ul>
       <details><summary>View the data</summary>${table}</details>
+      <div id="latestVideo"></div>
       ${ds.source.url ? `<p class="muted">Original source: <a href="${esc(ds.source.url)}" target="_blank" rel="noopener">${esc(ds.source.publisher)} ↗</a></p>` : ''}
       ${S.ds?.id && !String(S.ds.id).startsWith('custom-') ? `<p class="muted"><button class="linkbtn" data-act="cite">Cite this chart</button> · <a href="/about/#how-every-chart-is-checked">How we check the data</a></p>` : ''}
       ${siteFoot()}`;
+    fillLatest(S.ds?.id);
+  }
+  // The newest video Civic Charts posted for this chart, and where (from the Worker, kept until
+  // the next post). Shown only when one exists; nothing changes if the request fails.
+  const latestCache = new Map();
+  async function fillLatest(id) {
+    if (!id || String(id).startsWith('custom-') || EMBED || RENDER) return;
+    let rec = latestCache.get(id);
+    if (rec === undefined) {
+      try { const r = await fetch(`${PS.API_BASE}/posts/${encodeURIComponent(id)}.json`); rec = r.ok ? await r.json() : null; } catch { rec = null; }
+      latestCache.set(id, rec);
+    }
+    const el = document.getElementById('latestVideo');
+    if (!el || S.ds?.id !== id || !rec || (!rec.video && !Object.keys(rec.links || {}).length)) return;
+    const NAMES = { youtube: 'YouTube', bluesky: 'Bluesky', threads: 'Threads', facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', reddit: 'Reddit', linkedin: 'LinkedIn' };
+    const links = Object.entries(rec.links || {}).filter(([k]) => NAMES[k]).map(([k, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${NAMES[k]}</a>`).join(' · ');
+    el.innerHTML = `<h2>Latest video</h2>${rec.video ? `<video class="latest-video" src="${esc(rec.video)}" controls playsinline preload="none" poster="/${esc(id)}/og.png" style="width:100%;border-radius:10px"></video>` : ''}
+      <p class="muted">Posted ${esc(new Date(rec.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))}${links ? ` · Share or comment on ${links}` : ''}</p>`;
   }
   // Corrections and contact. The correction email arrives pre-filled with the chart and its link.
   function siteFoot() {

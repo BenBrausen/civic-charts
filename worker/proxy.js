@@ -96,6 +96,53 @@ async function media(req, env, name) {
   return new Response(req.method === 'HEAD' ? null : value, { headers: { ...h, 'Content-Type': type, 'Content-Length': String(value.byteLength), 'Cache-Control': 'public, max-age=86400' } });
 }
 
+// ---------- latest video and posts per chart: /v/<id>.mp4, /posts/<id>.json, /posts.json ----------
+// After each post, the auto-poster stores the chart's newest video and where it was posted
+// (PUT /latest/<id>.mp4 and PUT /latest/<id>, with MEDIA_UPLOAD_TOKEN). Unlike /media/ links,
+// these never expire; each new post replaces them. Chart pages, the app and the MCP server
+// show them, so people (and AI tools) can watch or share what was already made.
+const ID_RE = /^[a-z0-9][a-z0-9-]{1,60}$/;
+async function latest(req, env, rest) {
+  const h = { 'Access-Control-Allow-Origin': '*' };
+  if (!env.TTS_KV) return new Response('Storage is not set up', { status: 503, headers: h });
+  const isVideo = rest.endsWith('.mp4'), id = rest.replace(/\.mp4$/, '');
+  if (!ID_RE.test(id)) return new Response('Not found', { status: 404, headers: h });
+  if (req.method !== 'PUT') return new Response('Use PUT', { status: 405, headers: h });
+  if (!env.MEDIA_UPLOAD_TOKEN || req.headers.get('Authorization') !== `Bearer ${env.MEDIA_UPLOAD_TOKEN}`) return new Response('Not allowed', { status: 403, headers: h });
+  if (isVideo) {
+    const body = await req.arrayBuffer();
+    if (body.byteLength > 25 * 1024 * 1024) return new Response('Files can be up to 25 MB', { status: 413, headers: h });
+    await env.TTS_KV.put(`latest:${id}.mp4`, body);
+    return Response.json({ url: `${new URL(req.url).origin}/v/${id}.mp4`, bytes: body.byteLength }, { status: 201, headers: h });
+  }
+  let m; try { m = await req.json(); } catch { return new Response('Send JSON', { status: 400, headers: h }); }
+  const url = v => (/^https:\/\/[^\s"<>]+$/.test(v || '') ? String(v).slice(0, 500) : undefined);
+  const links = {};
+  for (const k of ['youtube', 'bluesky', 'threads', 'facebook', 'instagram', 'tiktok', 'reddit', 'linkedin']) if (url(m.links?.[k])) links[k] = url(m.links[k]);
+  const rec = { id, date: String(m.date || new Date().toISOString()).slice(0, 25), headline: String(m.headline || '').slice(0, 400), video: url(m.video), links };
+  await env.TTS_KV.put(`posts:${id}`, JSON.stringify(rec));
+  const index = (await env.TTS_KV.get('posts:index', { type: 'json' })) || {};
+  index[id] = rec;
+  await env.TTS_KV.put('posts:index', JSON.stringify(index));
+  return Response.json({ ok: true, rec }, { status: 201, headers: h });
+}
+async function latestGet(req, env, kind, rest) {
+  const h = { 'Access-Control-Allow-Origin': '*' };
+  if (!env.TTS_KV) return new Response('Storage is not set up', { status: 503, headers: h });
+  if (kind === 'v') {
+    const id = rest.replace(/\.mp4$/, '');
+    if (!ID_RE.test(id)) return new Response('Not found', { status: 404, headers: h });
+    const v = await env.TTS_KV.get(`latest:${id}.mp4`, { type: 'arrayBuffer' });
+    if (!v) return new Response('No video yet', { status: 404, headers: h });
+    return new Response(req.method === 'HEAD' ? null : v, { headers: { ...h, 'Content-Type': 'video/mp4', 'Content-Length': String(v.byteLength), 'Cache-Control': 'public, max-age=3600' } });
+  }
+  if (rest === '' || rest === 'index') return Response.json((await env.TTS_KV.get('posts:index', { type: 'json' })) || {}, { headers: { ...h, 'Cache-Control': 'public, max-age=300' } });
+  const id = rest.replace(/\.json$/, '');
+  if (!ID_RE.test(id)) return new Response('Not found', { status: 404, headers: h });
+  const r = await env.TTS_KV.get(`posts:${id}`, { type: 'json' });
+  return r ? Response.json(r, { headers: { ...h, 'Cache-Control': 'public, max-age=300' } }) : Response.json({ id, none: true }, { status: 404, headers: h });
+}
+
 // ---------- Reddit feed: /feed/reddit.json ----------
 // Reddit no longer gives out API keys, so the Civic Charts app on Reddit's Developer Platform
 // (Devvit) reads this list every 15 minutes and posts new items to each subreddit it's installed
@@ -282,7 +329,7 @@ const MCP_TOOLS = [
     description: 'Recent new features and datasets on Civic Charts itself (not data releases).',
     inputSchema: { type: 'object', properties: {} }, annotations: { readOnlyHint: true, openWorldHint: false } },
 ];
-async function callTool(name, a = {}) {
+async function callTool(name, a = {}, env = {}) {
   const idx = await aiIndex();
   const out = (text, data) => ({ content: [{ type: 'text', text }], structuredContent: data });
   if (name === 'search_charts') {
@@ -299,8 +346,11 @@ async function callTool(name, a = {}) {
     const pv = a.place ? await placeValue(c, a.place).catch(() => null) : null;
     const text = [chartBrief(c), pv ? `${pv.place}: ${fmtVal(pv.value, c)} as of ${fmtAsOf(pv.asOf, c)}, ${pv.tied ? 'tied at ' : ''}#${pv.rank} of ${pv.of} (highest = #1).${pv.page ? `\n${pv.place} page (answer, trend and all states): ${pv.page}` : ''}` : a.place ? `No value for "${a.place}" in this chart${c.geo ? '' : ' (it is a national chart)'}.` : '',
       c.facts?.length ? `Key facts:\n${c.facts.map(f => `- ${f}`).join('\n')}` : '', c.howToRead ? `How to read it: ${c.howToRead}` : '',
-      `Preview image: ${c.image}`, `Raw data (JSON): ${c.data}`].filter(Boolean).join('\n\n');
-    return out(text, { ...c, places: undefined, placeValue: pv });
+      `Preview image: ${c.image}`, `Raw data (JSON): ${c.data}`].filter(Boolean);
+    // The newest video and where it was posted, if Civic Charts has posted this chart.
+    const posted = env.TTS_KV ? await env.TTS_KV.get(`posts:${c.id}`, { type: 'json' }).catch(() => null) : null;
+    if (posted?.video || Object.keys(posted?.links || {}).length) text.push(`Latest video (${String(posted.date).slice(0, 10)}): ${[posted.video, ...Object.entries(posted.links || {}).map(([k, v]) => `${k}: ${v}`)].filter(Boolean).join(' · ')}`);
+    return out(text.join('\n\n'), { ...c, places: undefined, placeValue: pv, posted: posted || null });
   }
   if (name === 'latest_releases') {
     const n = Math.min(20, Math.max(1, +a.limit || 8)), seen = new Set(), list = [];
@@ -310,7 +360,7 @@ async function callTool(name, a = {}) {
   if (name === 'whats_new') return out((idx.changelog || []).map(e => `${e.date}${e.major ? ' (major)' : ''}: ${e.title}${e.text ? `. ${e.text}` : ''}`).join('\n') + `\nFull list: ${SITE}/changelog/`, { changelog: idx.changelog || [] });
   return { ...out(`Unknown tool ${name}`, {}), isError: true };
 }
-async function mcp(req) {
+async function mcp(req, env = {}) {
   const h = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Accept, Mcp-Protocol-Version, Mcp-Session-Id, Authorization', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS' };
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
   if (req.method !== 'POST') return new Response(JSON.stringify({ name: 'Civic Charts MCP server', use: 'POST JSON-RPC (MCP Streamable HTTP)', tools: MCP_TOOLS.map(t => t.name) }), { status: req.method === 'GET' ? 405 : 405, headers: { ...h, Allow: 'POST', 'Content-Type': 'application/json' } });
@@ -328,7 +378,7 @@ async function mcp(req) {
         }
         case 'ping': return ok({});
         case 'tools/list': return ok({ tools: MCP_TOOLS });
-        case 'tools/call': return ok(await callTool(m.params?.name, m.params?.arguments));
+        case 'tools/call': return ok(await callTool(m.params?.name, m.params?.arguments, env));
         case 'resources/list': return ok({ resources: [] });
         case 'resources/templates/list': return ok({ resourceTemplates: [] });
         case 'prompts/list': return ok({ prompts: [] });
@@ -351,7 +401,11 @@ export default {
     const u = new URL(req.url);
     if (u.pathname.startsWith('/media/')) return media(req, env, u.pathname.slice(7));
     if (u.pathname === '/feed/reddit.json' || u.pathname === '/feed/reddit') return feed(req, env);
-    if (u.pathname === '/mcp' || u.pathname === '/mcp/') return mcp(req);
+    if (u.pathname === '/mcp' || u.pathname === '/mcp/') return mcp(req, env);
+    if (u.pathname.startsWith('/latest/')) return latest(req, env, u.pathname.slice(8));
+    if (u.pathname.startsWith('/v/')) return latestGet(req, env, 'v', u.pathname.slice(3));
+    if (u.pathname === '/posts.json') return latestGet(req, env, 'posts', '');
+    if (u.pathname.startsWith('/posts/')) return latestGet(req, env, 'posts', u.pathname.slice(7));
     if (u.pathname === '/api/tts' || u.pathname === '/api/tts/status') return tts(req, env, ctx, u.pathname);
     let target;
     if (u.pathname === '/api/search') {

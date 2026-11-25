@@ -59,6 +59,11 @@ for (const c of catalog) {
 }
 await browser.close(); server.close();
 
+// 2b. Each chart's newest posted video and post links (kept on the Worker by the auto-poster).
+const WORKER = 'https://plainsight-proxy.misty-brook-457e.workers.dev';
+let posted = {};
+try { const r = await fetch(`${WORKER}/posts.json`, { signal: AbortSignal.timeout(15000) }); if (r.ok) posted = await r.json(); } catch { /* none yet */ }
+
 // 3. Write each dataset page.
 const pageTitle = info => {
   const [val, dateRaw] = String(info.latestText || '').split(' · '), date = (dateRaw || '').replace(/^through /, '');
@@ -77,6 +82,7 @@ function staticBody(c, info) {
   return `<div class="static-intro"><h2>${esc(info.title)}</h2><p class="headline">${esc(info.headline)}</p><ul class="facts">${facts}</ul>${read}
 <p class="muted">Source: ${src.url ? `<a href="${esc(src.url)}" rel="noopener">${esc(src.publisher)}</a>` : esc(src.publisher)}${src.dataset ? ', ' + esc(src.dataset) : ''}. Updated automatically from the official data. <a href="/about/#how-every-chart-is-checked">How we check the data</a>.</p>
 <p class="muted">Cite: Civic Charts. "${esc(info.title)}." Data: ${esc(src.publisher)}${src.dataset ? ', ' + esc(src.dataset) : ''}. ${ORIGIN}/${c.id}/</p>
+${posted[c.id]?.video ? `<h2>Latest video</h2><video src="${esc(posted[c.id].video)}" controls playsinline preload="none" poster="/${c.id}/og.png" style="width:100%"></video>` : ''}
 ${rel ? `<h2>More ${esc(topicName(c.topic).toLowerCase())} charts</h2><ul class="static-links">${rel}</ul>` : ''}<p><a href="/">All charts on Civic Charts</a></p></div>`;
 }
 function datasetLd(c, info) {
@@ -113,7 +119,8 @@ for (const c of catalog) {
   const info = infos[c.id]; if (!info) continue;
   let html = withHead(template, {
     title: pageTitle(info), desc: cut(`${info.headline} Source: ${info.source?.publisher}.`, 158), url: `${ORIGIN}/${c.id}/`,
-    image: `${ORIGIN}/${c.id}/og.png`, imageW: info.width, imageH: info.height, alt: info.altText, ld: datasetLd(c, info), pageD: c.id,
+    image: `${ORIGIN}/${c.id}/og.png`, imageW: info.width, imageH: info.height, alt: info.altText, ld: posted[c.id]?.video ? [datasetLd(c, info), { '@context': 'https://schema.org', '@type': 'VideoObject', name: info.title, description: cut(posted[c.id].headline || info.headline, 300),
+      thumbnailUrl: `${ORIGIN}/${c.id}/og.png`, uploadDate: posted[c.id].date, contentUrl: posted[c.id].video, embedUrl: `${ORIGIN}/${c.id}/` }] : datasetLd(c, info), pageD: c.id,
   });
   html = html.replace('<aside class="panel insight" id="insight"></aside>', `<aside class="panel insight" id="insight">${staticBody(c, info)}</aside>`);
   await fs.writeFile(path.join(SITE, c.id, 'index.html'), html);
@@ -263,6 +270,7 @@ for (const c of catalog) {
     unit: c.unit?.label || null, unitFormat: c.unit ? { format: c.unit.format, decimals: c.unit.decimals } : null, description: cut(info.description || '', 400),
     source: { publisher: info.source?.publisher, dataset: info.source?.dataset, url: info.source?.url },
     page: `${ORIGIN}/${c.id}/`, image: `${ORIGIN}/${c.id}/og.png`, data: `${ORIGIN}/data/${c.id}.json`,
+    ...(posted[c.id] ? { video: posted[c.id].video || null, posts: posted[c.id].links || {}, postedAt: posted[c.id].date } : {}),
   };
   if (c.geo === 'us-states') {
     try {
