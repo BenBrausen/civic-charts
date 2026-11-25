@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-11-25",
+    "title": "Picking your state now filters the lists",
+    "text": "Charts with your state's data come first, each showing your state's number and rank. National charts are one tap away."
+  },
+  {
+    "date": "2026-11-25",
     "major": true,
     "title": "Your state, by the numbers",
     "text": "Every state now has its own pages: the latest jobs, wages, housing, health and other numbers, each ranked against every state with its source (civiccharts.com/states/)."

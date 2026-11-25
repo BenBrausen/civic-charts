@@ -337,8 +337,30 @@
     const st = stateInfo();
     const active = S.ds && (S.ds.id === c.id || c.reframes?.includes(S.ds.id));
     const kind = c.kind === 'events' ? '<span class="badge live">Live</span>' : c.geo ? '<span class="badge">Map</span>' : c.kind === 'panel' ? '<span class="badge">Compare</span>' : '';
-    const local = st && c.geo === 'us-states' ? `<span class="local">Shows ${esc(st.name)}${c.hasNational ? ' vs. U.S.' : ''}</span>` : st && c.geo === 'us-counties' ? `<span class="local">Zooms to ${esc(st.name)}'s counties</span>` : '';
+    const mine = st && c.geo === 'us-states' ? stateValueText(c, st) : '';
+    const local = mine ? `<span class="local">${esc(mine)}</span>` : st && c.geo === 'us-states' ? `<span class="local">Shows ${esc(st.name)}${c.hasNational ? ' vs. U.S.' : ''}</span>` : st && c.geo === 'us-counties' ? `<span class="local">Zooms to ${esc(st.name)}'s counties</span>` : '';
     return `<button class="ds ${active ? 'active' : ''}" data-ds="${c.id}"><b>${esc(c.title)}${kind}${tierBadge(c.tier)}</b><span>${esc(c.source.publisher)} · ${esc(latestText(c))}</span>${local}</button>`;
+  }
+  // "Minnesota: $11.41 · 18th lowest of 44" (ties: "tied for 9th lowest of 51").
+  function stateValueText(c, st) {
+    const all = c.byState, v = all?.[st.fips];
+    if (v == null) return '';
+    const vals = Object.values(all), n = vals.length, above = vals.filter(x => x > v).length, below = vals.filter(x => x < v).length, tied = vals.filter(x => x === v).length > 1;
+    const ord = k => k + (['th', 'st', 'nd', 'rd'][(k % 100 > 10 && k % 100 < 14) ? 0 : Math.min(k % 10, 4) % 4] || 'th');
+    const pos = above === 0 ? `highest of ${n}` : below === 0 ? `lowest of ${n}` : above + 1 <= n / 2 ? `${ord(above + 1)} highest of ${n}` : `${ord(below + 1)} lowest of ${n}`;
+    return `${st.name}: ${PS.fmt(v, c.unit || {})} · ${tied ? 'tied for ' : ''}${pos}`;
+  }
+  // With a state picked, lists show charts that have that state's data, state maps first, then
+  // county maps; national-only charts wait behind "Show national charts too".
+  const hasState = c => c.geo === 'us-states' || c.geo === 'us-counties';
+  function forState(list) {
+    if (!stateInfo() || S.showNational) return list;
+    return list.filter(hasState).sort((a, b) => (a.geo === 'us-states' ? 0 : 1) - (b.geo === 'us-states' ? 0 : 1));
+  }
+  function nationalToggle(list) {
+    const st = stateInfo(); if (!st) return '';
+    const n = list.filter(c => !hasState(c)).length; if (!n) return '';
+    return `<p class="muted"><button class="linkbtn" data-act="toggleNational">${S.showNational ? `Show only charts with ${esc(st.name)} data` : `Show ${n} national chart${n === 1 ? '' : 's'} too`}</button></p>`;
   }
   // "$40.56T · Nov 5, 2026", "$1.99T deficit · FY2026", "U.S.: 4.2% · Sep 2026"
   function latestText(c) {
@@ -395,9 +417,10 @@
     return out.map(x => x.c);
   }
   function localResultsHTML() {
-    const sc = S.search, list = searchLocal(sc.q, sc);
-    const head = `<p class="muted local-count"><b>${list.length}</b> of ${S.catalog.length} ready-made datasets${sc.q ? ` match "${esc(sc.q)}"` : ''}. Verified sources, updated automatically.</p>`;
-    return head + (list.length ? list.slice(0, 40).map(dsCard).join('') : '<p class="muted">No ready-made dataset matches. Search data.gov and state portals below.</p>');
+    const sc = S.search, all = searchLocal(sc.q, sc), list = forState(all);
+    const stn = stateInfo() && !S.showNational ? ` with ${esc(stateInfo().name)} data` : '';
+    const head = `<p class="muted local-count"><b>${list.length}</b> of ${S.catalog.length} ready-made datasets${stn}${sc.q ? ` match "${esc(sc.q)}"` : ''}. Verified sources, updated automatically.</p>`;
+    return head + (list.length ? list.slice(0, 40).map(dsCard).join('') : '<p class="muted">No ready-made dataset matches. Search data.gov and state portals below.</p>') + nationalToggle(all);
   }
   const heads = list => list.filter(c => !c.reframes || c.reframes[0] === c.id);
   function lensHTML() {
@@ -423,13 +446,15 @@
     if (S.dataTab === 'popular') {
       const byId = new Map(S.catalog.map(c => [c.id, c]));
       const week = Date.now() - 14 * 864e5;
-      const fresh = S.catalog.filter(c => c.released && Date.parse(c.released) > week).sort((a, b) => b.released.localeCompare(a.released)).slice(0, 6);
-      if (fresh.length) body += `<div class="ds-group"><h3>New data in the last two weeks</h3>${fresh.map(dsCard).join('')}</div>`;
-      const picks = (reg?.featured || []).map(f => ({ ...f, c: byId.get(f.id) })).filter(f => f.c);
+      const freshAll = S.catalog.filter(c => c.released && Date.parse(c.released) > week).sort((a, b) => b.released.localeCompare(a.released));
+      const fresh = forState(freshAll).slice(0, 6);
+      if (fresh.length) body += `<div class="ds-group"><h3>${st && !S.showNational ? `New ${esc(st.name)} data in the last two weeks` : 'New data in the last two weeks'}</h3>${fresh.map(dsCard).join('')}${nationalToggle(freshAll)}</div>`;
+      const picksAll = (reg?.featured || []).map(f => ({ ...f, c: byId.get(f.id) })).filter(f => f.c);
+      const picks = st && !S.showNational ? [...picksAll.filter(f => hasState(f.c)), ...picksAll.filter(f => !hasState(f.c))] : picksAll;
       body += `<div class="ds-group"><h3>Popular questions</h3><p class="muted tier-desc">Pick a question. Each one opens a ready-made chart from an official source, kept up to date.</p><div class="pop-grid">${picks.map(({ q, c }) => {
         const active = S.ds && (S.ds.id === c.id || c.reframes?.includes(S.ds.id));
         const local = st && c.geo === 'us-states' ? `For ${esc(st.name)}` : st && c.geo === 'us-counties' ? `${esc(st.name)} counties` : '';
-        return `<button class="pop ${active ? 'active' : ''}" data-ds="${c.id}"><b>${esc(st && c.geo ? q.replace('your state', st.name).replace('your county', `your ${st.name} county`) : q)}</b><span class="pop-val">${esc(latestText(c))}</span><span class="pop-src">${esc(c.source.publisher)}${local ? ' · ' + local : ''}</span></button>`;
+        return `<button class="pop ${active ? 'active' : ''}" data-ds="${c.id}"><b>${esc(st && c.geo ? q.replace('your state', st.name).replace('your county', `your ${st.name} county`) : q)}</b><span class="pop-val">${esc(st && c.geo === 'us-states' && stateValueText(c, st) ? stateValueText(c, st).replace(/^[^:]+: /, `${st.code}: `) : latestText(c))}</span><span class="pop-src">${esc(c.source.publisher)}${local ? ' · ' + local : ''}</span></button>`;
       }).join('')}</div></div>`;
       body += `<button class="btn block" data-tab="search">Search all ${S.catalog.length} ready-made datasets, plus data.gov and state portals</button>`;
       body += `<p class="muted" style="margin-top:10px">Your current chart and settings are saved in this browser. <button class="linkbtn" data-act="startOver">Start over</button></p>`;
@@ -439,13 +464,13 @@
       const topics = (reg?.topics || []).map(t => ({ ...t, n: heads(S.catalog).filter(c => c.topic === t.id).length })).filter(t => t.n);
       body += `<div class="chips topic-chips"><button class="chip ${S.topic === 'all' ? 'active' : ''}" data-topic="all">All</button>${topics.map(t => `<button class="chip ${S.topic === t.id ? 'active' : ''}" data-topic="${t.id}">${esc(t.name)} <small>${t.n}</small></button>`).join('')}</div>`;
       body += lensHTML();
-      let list = heads(S.catalog).filter(c => S.topic === 'all' || c.topic === S.topic);
-      const rank = c => (c.geo === 'us-counties' ? 0 : c.geo === 'us-states' ? 1 : 2);
-      if (st) list = [...list].sort((a, b) => rank(a) - rank(b));
+      const topicAll = heads(S.catalog).filter(c => S.topic === 'all' || c.topic === S.topic);
+      let list = forState(topicAll);
       const groups = {};
       list.forEach(c => { const g = st && c.geo === 'us-counties' ? `${st.name} counties` : st && c.geo === 'us-states' ? `${st.name} & the U.S.` : (reg?.topics.find(t => t.id === c.topic)?.name || c.category); (groups[g] ||= []).push(c); });
       if (S.custom.length && S.topic === 'all') groups['Your data'] = S.custom;
       body += Object.entries(groups).map(([g, l]) => `<div class="ds-group"><h3>${esc(g)}</h3>${l.map(dsCard).join('')}</div>`).join('');
+      body += nationalToggle(topicAll);
       if (st) {
         const t = reg?.topics.find(x => x.id === S.topic);
         const localChips = portalChips(st.code, 'local');
@@ -545,7 +570,7 @@
 
   AFTER.data = () => {
     $('#statePick')?.addEventListener('change', e => {
-      S.state = e.target.value;
+      S.state = e.target.value; S.showNational = false;
       PS.track('select_state', { state: S.state || 'national' });
       try { localStorage.setItem('ps-state', S.state); } catch { }
       if (S.search.scope === 'state' && !S.state) S.search.scope = 'all';
@@ -774,6 +799,7 @@
       toast(`Data saved: ${rows.length.toLocaleString()} rows, with the source on top.`);
     },
     // A ready citation for articles, school work and posts: chart, source, page link, date.
+    toggleNational: () => { S.showNational = !S.showNational; renderStep(); },
     cite: () => {
       const ds = S.ds, src = ds.source || {}, day = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       const text = `Civic Charts. "${o.title || ds.title}." Data: ${src.publisher}${src.dataset ? `, ${src.dataset}` : ''}. ${location.origin}/${ds.id}/ (accessed ${day}).`;

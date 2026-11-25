@@ -1650,7 +1650,10 @@ for (const f of (await fs.readdir(OUT)).filter(f => f.endsWith('.json') && f !==
     releases.unshift({ id: meta.id, title: meta.title, released: NOW, lastObservation: meta.lastObservation, previousObservation: prev.lastObservation,
       latest: latestOf(ds), previous: prev.latest || null, unit: meta.unit, frequency: meta.frequency, topic: tag.topic || null, publisher: meta.source?.publisher || null });
   }
-  catalog.push({ ...meta, latest: latestOf(ds), released, hasNational: !!national, topic: tag.topic || 'economy', sourceId: tag.source || null, tier: tag.tier || src?.tier || 'federal', nSeries: series?.length, seriesNames: series?.length > 1 ? series.map(x => x.name) : undefined, nEntities: entities?.length, nEvents: events?.length,
+  // State maps carry every state's latest value, so picking a state can show its number and rank
+  // in the dataset lists without loading each dataset.
+  const byState = meta.geo === 'us-states' && entities && times?.length ? Object.fromEntries(entities.filter(e => e.values?.[times.length - 1] != null).map(e => [e.id, e.values[times.length - 1]])) : undefined;
+  catalog.push({ ...meta, latest: latestOf(ds), byState, released, hasNational: !!national, topic: tag.topic || 'economy', sourceId: tag.source || null, tier: tag.tier || src?.tier || 'federal', nSeries: series?.length, seriesNames: series?.length > 1 ? series.map(x => x.name) : undefined, nEntities: entities?.length, nEvents: events?.length,
     firstObservation: times?.[0] ?? series?.[0]?.points?.[0]?.[0] ?? events?.[0]?.t });
 }
 catalog.sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title));
