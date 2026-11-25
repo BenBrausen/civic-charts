@@ -2,6 +2,12 @@
   {
     "date": "2026-11-25",
     "major": true,
+    "title": "A page for every county",
+    "text": "Every U.S. county now has its own page with its income, rent, home values, health, internet access and more, each ranked among the state's counties and next to the typical U.S. county."
+  },
+  {
+    "date": "2026-11-25",
+    "major": true,
     "title": "Compare two states",
     "text": "See how any two states stack up on income, jobs, rent, crime and more, side by side. One tap picks a neighboring state, and every matchup has a share link and image."
   },

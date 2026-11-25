@@ -308,7 +308,10 @@ async function placeValue(c, place) {
       || tries.map(t => ds.entities.find(x => x.name.toLowerCase() === t.replace(/,\s*/, ', ') || norm(x.name) === norm(t))).find(Boolean);
     if (!e || e.values[li] == null) return null;
     const vals = ds.entities.map(x => x.values[li]).filter(v => v != null);
-    return { place: e.name, value: e.values[li], asOf: ds.times[li], rank: 1 + vals.filter(v => v > e.values[li]).length, of: vals.length, tied: vals.filter(v => v === e.values[li]).length > 1 };
+    const sl = x => x.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+    const [cn, ab] = e.name.split(/,\s*(?=[A-Z]{2}$)/);
+    const page = c.countyPages && STATES[ab] ? c.countyPages.replace('{state}', sl(STATES[ab])).replace('{county}', sl(cn)) : null;
+    return { place: e.name, value: e.values[li], asOf: ds.times[li], rank: 1 + vals.filter(v => v > e.values[li]).length, of: vals.length, tied: vals.filter(v => v === e.values[li]).length > 1, page };
   }
   return null;
 }
@@ -344,7 +347,7 @@ async function callTool(name, a = {}, env = {}) {
     const c = idx.charts.find(x => x.id === a.id) || searchCharts(idx, a.id || '', 1).results[0];
     if (!c) return { ...out(`No chart with id "${a.id}". Use search_charts first.`, {}), isError: true };
     const pv = a.place ? await placeValue(c, a.place).catch(() => null) : null;
-    const text = [chartBrief(c), pv ? `${pv.place}: ${fmtVal(pv.value, c)} as of ${fmtAsOf(pv.asOf, c)}, ${pv.tied ? 'tied at ' : ''}#${pv.rank} of ${pv.of} (highest = #1).${pv.page ? `\n${pv.place} page (answer, trend and all states): ${pv.page}` : ''}` : a.place ? `No value for "${a.place}" in this chart${c.geo ? '' : ' (it is a national chart)'}.` : '',
+    const text = [chartBrief(c), pv ? `${pv.place}: ${fmtVal(pv.value, c)} as of ${fmtAsOf(pv.asOf, c)}, ${pv.tied ? 'tied at ' : ''}#${pv.rank} of ${pv.of} (highest = #1).${pv.page ? `\n${pv.place} page (every number for this place): ${pv.page}` : ''}` : a.place ? `No value for "${a.place}" in this chart${c.geo ? '' : ' (it is a national chart)'}.` : '',
       c.facts?.length ? `Key facts:\n${c.facts.map(f => `- ${f}`).join('\n')}` : '', c.howToRead ? `How to read it: ${c.howToRead}` : '',
       `Preview image: ${c.image}`, `Raw data (JSON): ${c.data}`].filter(Boolean);
     // The newest video and where it was posted, if Civic Charts has posted this chart.

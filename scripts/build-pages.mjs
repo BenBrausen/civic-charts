@@ -53,6 +53,7 @@ for (const c of catalog) {
     await fs.writeFile(path.join(SITE, c.id, 'og.png'), Buffer.from(png.split(',')[1], 'base64'));
     // State maps: every state's own takeaway, for the state pages (/states/<state>/<chart>/).
     if (c.geo === 'us-states') { info.places = await page.evaluate(() => window.CC_RENDER.places?.() || []); info.us = await page.evaluate(() => window.CC_RENDER.usText?.() || {}); }
+    if (c.geo === 'us-counties') { info.counties = await page.evaluate(() => window.CC_RENDER.counties?.() || []); info.us = await page.evaluate(() => window.CC_RENDER.usText?.() || {}); }
     infos[c.id] = info;
     console.log('page', c.id.padEnd(24), cut(info.headline, 70));
   } catch (e) { console.error('FAIL', c.id, e.message); }
@@ -203,6 +204,75 @@ await fs.writeFile(path.join(SITE, 'states', 'index.html'), statePage({ title: '
   body: `<nav><a href="/">Civic Charts</a></nav><h1>Data by state</h1><p class="answer">Pick a state for its latest official numbers, each ranked against every state, with the source.</p><a class="btn" href="/states/compare/">Compare two states</a><ul class="list">${[...states.values()].sort((a, b) => a.name.localeCompare(b.name)).map(st => `<li><a href="/states/${st.slug}/">${esc(st.name)}</a></li>`).join('')}</ul>` }));
 stateUrls.push(`${ORIGIN}/states/`);
 
+// 4b2. County pages: /states/<state>/<county>/ with every county measure for that county, ranked
+// among the state's counties and next to the typical U.S. county, each linking to its map.
+const STATE_LIST = JSON.parse((/const STATE_LIST = (\[\[.*?\]\]);/.exec(await fs.readFile(path.join(PUB, 'js', 'data.js'), 'utf8')) || [, '[]'])[1].replace(/'/g, '"'));
+const stateByFips = new Map(STATE_LIST.map(([code, fips, name]) => [fips, { code, name, slug: slug(name) }]));
+const countyCharts = catalog.filter(c => c.geo === 'us-counties' && infos[c.id]?.counties?.length);
+const counties = new Map(); // fips -> { name, st, items: [{ c, info, x }] }
+for (const c of countyCharts) for (const x of infos[c.id].counties) {
+  const st = stateByFips.get(String(x.id).slice(0, 2)); if (!st) continue;
+  const k = counties.get(x.id) || { name: x.name.replace(/,\s*[A-Z]{2}$/, ''), st, pop: x.pop, items: [] };
+  k.items.push({ c, info: infos[c.id], x }); if (x.pop != null) k.pop = x.pop; counties.set(x.id, k);
+}
+// Rank within the state, and the typical (median) U.S. county, per chart.
+const inState = new Map(), usMedian = new Map();
+for (const c of countyCharts) {
+  const all = infos[c.id].counties, by = {};
+  for (const x of all) (by[String(x.id).slice(0, 2)] ||= []).push(x.value);
+  inState.set(c.id, by);
+  const sorted = all.slice().sort((a, b) => a.value - b.value); usMedian.set(c.id, sorted[Math.floor(sorted.length / 2)]?.valueText);
+}
+const ordN = k => k + (['th', 'st', 'nd', 'rd'][(k % 100 > 10 && k % 100 < 14) ? 0 : Math.min(k % 10, 4) % 4] || 'th');
+const posText = (vals, v) => { const n = vals.length, above = vals.filter(y => y > v).length, below = vals.filter(y => y < v).length, t = vals.filter(y => y === v).length > 1 ? 'tied for ' : '';
+  return n < 2 ? '' : t + (above === 0 ? `highest of ${n}` : below === 0 ? `lowest of ${n}` : above + 1 <= n / 2 ? `${ordN(above + 1)} highest of ${n}` : `${ordN(below + 1)} lowest of ${n}`); };
+const countySlug = name => slug(name);
+const countyUrls = [], countiesByState = new Map();
+const LEAD = ['county-income', 'county-rent', 'county-home-value', 'county-poverty', 'county-uninsured', 'county-broadband'];
+const CTOPIC = ['economy', 'housing', 'health', 'people', 'technology', 'environment'];
+for (const [fips, k] of counties) {
+  const st = k.st, cs = countySlug(k.name), url = `${ORIGIN}/states/${st.slug}/${cs}/`;
+  (countiesByState.get(st.code) || countiesByState.set(st.code, []).get(st.code)).push({ name: k.name, slug: cs });
+  const unitOf = info => (info.us?.unit || measureOf(info)).replace(/\s*\(.*?\)\s*$/, '');
+  // Plain sentences for the headline measures; others are listed below.
+  const PHRASE = { 'county-income': v => `the median household income is ${v}`, 'county-rent': v => `the median rent is ${v} a month`, 'county-home-value': v => `the median home value is ${v}`,
+    'county-poverty': v => `${v} of people live below the poverty line`, 'county-uninsured': v => `${v} of adults 18 to 64 have no health insurance`, 'county-broadband': v => `${v} of households have broadband` };
+  const lead = LEAD.map(id => k.items.find(it => it.c.id === id)).filter(Boolean).slice(0, 3)
+    .map(it => `${PHRASE[it.c.id](it.x.valueText)} (${posText(inState.get(it.c.id)[fips.slice(0, 2)], it.x.value)} counties in ${st.name})`);
+  const groups = {};
+  for (const it of k.items) (groups[it.c.topic] ||= []).push(it);
+  const sections = Object.entries(groups).sort((a, b) => (CTOPIC.indexOf(a[0]) + 99) % 99 - (CTOPIC.indexOf(b[0]) + 99) % 99).map(([t, its]) => `<h2>${esc(topicName(t))}</h2><ul class="list">${its.map(({ c, info, x }) => {
+    const pos = posText(inState.get(c.id)[fips.slice(0, 2)], x.value), us = usMedian.get(c.id), src = info.source || {};
+    return `<li><a href="/${c.id}/?state=${st.code}"><b>${esc(unitOf(info))}</b></a>: <b>${esc(x.valueText)}</b>${pos ? `, ${esc(pos)} in ${esc(st.name)}` : ''}${us ? `. Typical U.S. county: ${esc(us)}` : ''}. <span class="muted">${esc(info.us?.asOf || '')} · ${esc(src.publisher || '')}</span></li>`;
+  }).join('')}</ul>`).join('');
+  const small = k.pop != null && k.pop < 5000;
+  const title = `${k.name}, ${st.name}: Income, Rent, Health and More | Civic Charts`;
+  const answer = lead.length ? `In ${k.name}, ${st.name}, ${lead.length > 1 ? `${lead.slice(0, -1).join(', ')}, and ${lead.at(-1)}` : lead[0]}.` : `The latest official numbers for ${k.name}, ${st.name}.`;
+  const body = `<nav><a href="/">Civic Charts</a> › <a href="/states/">States</a> › <a href="/states/${st.slug}/">${esc(st.name)}</a></nav>
+<h1>${esc(k.name)}, ${esc(st.name)} by the numbers</h1>
+<p class="answer">${esc(answer.charAt(0).toUpperCase() + answer.slice(1))}</p>
+${small ? `<p class="muted">${esc(k.name)} has about ${Number(k.pop).toLocaleString('en-US')} residents. In small counties, rates can swing a lot from a handful of people, so read them with care.</p>` : ''}
+<p class="muted">${k.items.length} measures, each from its official source. Ranks are among ${esc(st.name)}'s counties with data (1st = highest). Each measure opens its map, zoomed to ${esc(st.name)}.</p>
+${sections}
+<h2>More about ${esc(st.name)}</h2><p><a href="/states/${st.slug}/">${esc(st.name)} by the numbers</a> · <a href="/states/compare/?a=${st.slug}">Compare ${esc(st.name)} with another state</a></p>
+<p class="muted">Cite: Civic Charts. "${esc(k.name)}, ${esc(st.name)} by the numbers." ${url}</p>`;
+  const ld = { '@context': 'https://schema.org', '@type': 'Dataset', name: `${k.name}, ${st.name}: official statistics`, description: answer, url, isAccessibleForFree: true,
+    spatialCoverage: { '@type': 'Place', name: `${k.name}, ${st.name}, United States` }, includedInDataCatalog: { '@type': 'DataCatalog', name: 'Civic Charts', url: ORIGIN + '/' } };
+  await fs.mkdir(path.join(SITE, 'states', st.slug, cs), { recursive: true });
+  await fs.writeFile(path.join(SITE, 'states', st.slug, cs, 'index.html'), statePage({ title, desc: cut(`${answer} Official data, ranked among ${st.name} counties.`, 158), url, ld, body }));
+  countyUrls.push(url);
+}
+// Each state's hub lists its counties.
+for (const [code, list] of countiesByState) {
+  const st = [...stateByFips.values()].find(x => x.code === code), f = path.join(SITE, 'states', st.slug, 'index.html');
+  try {
+    const html = await fs.readFile(f, 'utf8');
+    const block = `<h2>Counties</h2><p class="muted">${list.length} ${code === 'LA' ? 'parishes' : 'counties'}, each with its income, rent, health and other numbers.</p><ul class="list">${list.sort((a, b) => a.name.localeCompare(b.name)).map(x => `<li><a href="/states/${st.slug}/${x.slug}/">${esc(x.name)}</a></li>`).join('')}</ul>`;
+    await fs.writeFile(f, html.replace('</main>', `${block}</main>`));
+  } catch { /* state without a hub */ }
+}
+stateUrls.push(...countyUrls);
+
 // 4c. What each page shows, as a fingerprint, so IndexNow (scripts/indexnow.mjs) only tells
 // search engines about pages whose data actually changed, not every page on every refresh.
 const sigs = {};
@@ -212,6 +282,8 @@ for (const [, st] of states) {
   for (const { c, p } of st.items) sigs[`${ORIGIN}/states/${st.slug}/${c.id}/`] = sig(c.lastObservation, p.headline);
   sigs[`${ORIGIN}/states/${st.slug}/`] = sig(...st.items.map(x => x.c.lastObservation));
 }
+const countySig = sig(...countyCharts.map(c => c.lastObservation));
+for (const u of countyUrls) sigs[u] = countySig;
 sigs[`${ORIGIN}/`] = sig(catalog.length, releases[0]?.released);
 sigs[`${ORIGIN}/states/`] = sig(states.size);
 for (const f of ['about', 'changelog', 'privacy', 'terms', 'ai']) {
@@ -281,6 +353,7 @@ for (const c of catalog) {
       if (stateCharts.some(x => x.id === c.id)) item.statePages = `${ORIGIN}/states/{state}/${c.id}/`;
     } catch { /* no per-state values */ }
   }
+  if (c.geo === 'us-counties' && countyCharts.some(x => x.id === c.id)) item.countyPages = `${ORIGIN}/states/{state}/{county}/`;
   ai.push(item);
 }
 await fs.mkdir(path.join(SITE, 'ai'), { recursive: true });

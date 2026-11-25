@@ -258,6 +258,12 @@
           return { fips: e.id, code: byFips.get(e.id)[0], name: e.name, value: e.values[li], valueText: PS.fmt(e.values[li], ds.unit), headline: a.headline, facts: a.facts.map(f => f.text) };
         });
       },
+      // Every county's latest value for a county map, formatted like the chart (county pages).
+      counties: () => {
+        const ds = S.ds; if (ds.kind !== 'panel' || ds.geo !== 'us-counties' || ds.election) return [];
+        const li = PS.windowed(ds, o).idx.at(-1);
+        return ds.entities.filter(e => e.values[li] != null).map(e => ({ id: e.id, name: e.name, value: e.values[li], valueText: PS.fmt(e.values[li], ds.unit), pop: e.pop ?? null }));
+      },
       usText: () => { const ds = S.ds, li = PS.windowed(ds, o).idx.at(-1), us = ds.national?.values?.[li]; return { us: us != null ? PS.fmt(us, ds.unit) : null, asOf: PS.fmtDate(ds._tms[li], ds.frequency), unit: ds.unit.label || '' }; },
       // Carousel slides (chart, rankings for maps, takeaway, how to read, sources) as JPEG data
       // URLs for Instagram, and the same pages as a PDF (base64) for a LinkedIn document post.
