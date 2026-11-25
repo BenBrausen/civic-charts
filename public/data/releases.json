@@ -1,5 +1,30 @@
 [
  {
+  "id": "mortgage-rate",
+  "title": "30-year mortgage rate",
+  "released": "2026-11-25T21:37:59.574Z",
+  "lastObservation": "2026-11-25",
+  "previousObservation": "2026-11-19",
+  "latest": {
+   "t": "2026-11-25",
+   "v": 7.21,
+   "series": "30-year fixed"
+  },
+  "previous": {
+   "t": "2026-11-19",
+   "v": 7.28,
+   "series": "30-year fixed"
+  },
+  "unit": {
+   "label": "Average rate",
+   "format": "pct",
+   "decimals": 2
+  },
+  "frequency": "weekly",
+  "topic": "housing",
+  "publisher": "Freddie Mac"
+ },
+ {
   "id": "state-drought",
   "title": "Drought by state",
   "released": "2026-11-25T14:16:51.330Z",
