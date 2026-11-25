@@ -176,7 +176,7 @@ ${info.howToRead?.length ? `<p><b>How to read it:</b> ${esc(info.howToRead.join(
 ${info.us?.us ? `<p class="muted">U.S.: ${esc(info.us.us)}. Rank 1 is the highest value; "T-" marks a tie.</p>` : '<p class="muted">Rank 1 is the highest value; "T-" marks a tie.</p>'}
 <h2>Source</h2><p class="muted">${src.url ? `<a href="${esc(src.url)}" rel="noopener">${esc(src.publisher)}</a>` : esc(src.publisher)}${src.dataset ? `, ${esc(src.dataset)}` : ''}. Retrieved ${esc(String(info.retrieved || '').slice(0, 10))}, updated automatically. <a href="/about/#how-every-chart-is-checked">How we check the data</a>.</p>
 <p class="muted">Cite: Civic Charts. "${esc(measure)} in ${esc(st.name)}." Data: ${esc(src.publisher)}. ${url}</p>
-<p><a href="/states/${st.slug}/">More ${esc(st.name)} numbers</a> · <a href="/${c.id}/">${esc(info.title)}, all states</a></p>`;
+<p><a href="/states/${st.slug}/">More ${esc(st.name)} numbers</a> · <a href="/states/compare/?a=${st.slug}">Compare ${esc(st.name)} with another state</a> · <a href="/${c.id}/">${esc(info.title)}, all states</a></p>`;
     const ld = { '@context': 'https://schema.org', '@type': 'Dataset', name: `${measure} in ${st.name}`, description: p.headline, url, isAccessibleForFree: true,
       spatialCoverage: { '@type': 'Place', name: `${st.name}, United States` }, creator: { '@type': 'Organization', name: src.publisher }, ...(src.url ? { isBasedOn: src.url } : {}),
       includedInDataCatalog: { '@type': 'DataCatalog', name: 'Civic Charts', url: ORIGIN + '/' }, dateModified: String(info.retrieved || '').slice(0, 10) || undefined };
@@ -194,13 +194,13 @@ ${info.us?.us ? `<p class="muted">U.S.: ${esc(info.us.us)}. Rank 1 is the highes
   const hubUrl = `${ORIGIN}/states/${st.slug}/`;
   await fs.writeFile(path.join(dir, 'index.html'), statePage({ title: `${st.name} by the Numbers: Jobs, Wages, Housing and More | Civic Charts`,
     desc: `The latest official numbers for ${st.name}: ${st.items.slice(0, 4).map(x => measureOf(x.info).toLowerCase()).join(', ')} and more, each with its rank among states and its source.`, url: hubUrl,
-    body: `<nav><a href="/">Civic Charts</a> › <a href="/states/">States</a></nav><h1>${esc(st.name)} by the numbers</h1><p class="answer">The latest official data for ${esc(st.name)}, compared with every state and the U.S. ${st.items.length} measures, each from its original source.</p>${sections}` }));
+    body: `<nav><a href="/">Civic Charts</a> › <a href="/states/">States</a></nav><h1>${esc(st.name)} by the numbers</h1><p class="answer">The latest official data for ${esc(st.name)}, compared with every state and the U.S. ${st.items.length} measures, each from its original source.</p><a class="btn" href="/states/compare/?a=${st.slug}">Compare ${esc(st.name)} with another state</a>${sections}` }));
   stateUrls.push(hubUrl);
 }
 await fs.mkdir(path.join(SITE, 'states'), { recursive: true });
 await fs.writeFile(path.join(SITE, 'states', 'index.html'), statePage({ title: 'Data by State: The Latest Official Numbers for Every State | Civic Charts',
   desc: 'Pick a state for its latest official numbers on jobs, wages, housing, health and more, each ranked against every state with its source.', url: `${ORIGIN}/states/`,
-  body: `<nav><a href="/">Civic Charts</a></nav><h1>Data by state</h1><p class="answer">Pick a state for its latest official numbers, each ranked against every state, with the source.</p><ul class="list">${[...states.values()].sort((a, b) => a.name.localeCompare(b.name)).map(st => `<li><a href="/states/${st.slug}/">${esc(st.name)}</a></li>`).join('')}</ul>` }));
+  body: `<nav><a href="/">Civic Charts</a></nav><h1>Data by state</h1><p class="answer">Pick a state for its latest official numbers, each ranked against every state, with the source.</p><a class="btn" href="/states/compare/">Compare two states</a><ul class="list">${[...states.values()].sort((a, b) => a.name.localeCompare(b.name)).map(st => `<li><a href="/states/${st.slug}/">${esc(st.name)}</a></li>`).join('')}</ul>` }));
 stateUrls.push(`${ORIGIN}/states/`);
 
 // 4c. What each page shows, as a fingerprint, so IndexNow (scripts/indexnow.mjs) only tells
@@ -225,7 +225,7 @@ const day = t => String(t || '').slice(0, 10);
 const urls = [`  <url><loc>${ORIGIN}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
   ...catalog.filter(c => infos[c.id]).map(c => `  <url><loc>${ORIGIN}/${c.id}/</loc>${day(c.released || c.retrieved) ? `<lastmod>${day(c.released || c.retrieved)}</lastmod>` : ''}<changefreq>${['weekly', 'real-time'].includes(c.frequency) ? 'daily' : 'weekly'}</changefreq></url>`),
   ...stateUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq></url>`),
-  ...['about', 'changelog'].map(p => `  <url><loc>${ORIGIN}/${p}/</loc></url>`)];
+  ...['about', 'changelog', 'states/compare'].map(p => `  <url><loc>${ORIGIN}/${p}/</loc></url>`)];
 await fs.writeFile(path.join(SITE, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
 
 // 6. RSS feed of new releases. The newest release of each dataset carries its current headline.

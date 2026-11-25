@@ -438,7 +438,7 @@
   STEPS.data = () => {
     const st = stateInfo();
     const stateSel = `<div class="state-pick"><label for="statePick">Your state</label><select id="statePick"><option value="">All states (national view)</option>${PS.STATE_LIST.map(([c, , n]) => `<option value="${c}" ${S.state === c ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
-      ${st ? `<p class="muted state-note">State-level charts now highlight ${esc(st.name)} and compare it with the U.S.</p>` : ''}`;
+      ${st ? `<p class="muted state-note">State-level charts now highlight ${esc(st.name)} and compare it with the U.S. <a href="/states/compare/?a=${esc(st.name.toLowerCase().replace(/[^a-z]+/g, '-'))}">Compare ${esc(st.name)} with another state</a></p>` : ''}`;
     const tabs = `<div class="tabs">${[['popular', 'Popular'], ['topics', 'Topics'], ['sources', 'Sources'], ['search', 'Search'], ['upload', 'Upload']].filter(([k]) => !SIMPLE() || !['sources', 'upload'].includes(k)).map(([k, l]) => `<button data-tab="${k}" class="${S.dataTab === k ? 'active' : ''}">${l}</button>`).join('')}</div>`;
     let body = '';
     const reg = PS.REGISTRY;

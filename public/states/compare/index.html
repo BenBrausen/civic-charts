@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compare two states: who comes out ahead? | Civic Charts</title>
+<meta name="description" content="Pick two states and see how they stack up on income, jobs, rent, crime, broadband and more, side by side from official data.">
+<link rel="canonical" href="https://civiccharts.com/states/compare/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<meta property="og:title" content="Compare two states"><meta property="og:description" content="How does your state stack up? Side by side on income, jobs, rent and more, from official data."><meta property="og:image" content="https://civiccharts.com/brand/avatar-1080.png">
+<style>
+  :root { --bg: #f6f5f1; --fg: #1b1b1b; --muted: #555; --line: #ddd9cf; --accent: #1d4e89; --a: #2a78d6; --b: #e2742c; --box: #fff; --hi: #e8f0fb; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161616; --fg: #ececec; --muted: #aaa; --line: #333; --accent: #8db4ff; --a: #6ea0ff; --b: #ff9a57; --box: #222; --hi: #1d2736; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.55 system-ui, -apple-system, sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 28px 16px 64px; }
+  nav { margin-bottom: 18px; font-size: 15px; } nav a { text-decoration: none; font-weight: 600; } a { color: var(--accent); }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; } h2 { font-size: 20px; margin: 28px 0 8px; }
+  .muted { color: var(--muted); font-size: 15px; }
+  .pick { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; margin: 18px 0; }
+  select { width: 100%; font: inherit; font-weight: 700; padding: 10px; border-radius: 10px; border: 2px solid var(--line); background: var(--box); color: var(--fg); }
+  #a { border-color: var(--a); } #b { border-color: var(--b); } .vs { font-weight: 800; color: var(--muted); }
+  .score { background: var(--box); border: 1px solid var(--line); border-radius: 14px; padding: 16px; text-align: center; }
+  .score .big { font-size: 34px; font-weight: 800; } .score .ca { color: var(--a); } .score .cb { color: var(--b); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .row .m { grid-column: 1 / -1; font-weight: 700; } .row .m a { color: inherit; } .row .m small { font-weight: 400; color: var(--muted); }
+  .v { padding: 8px 10px; border-radius: 8px; background: var(--box); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .v b { font-size: 18px; } .v span { display: block; font-size: 13px; color: var(--muted); }
+  .v.win { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; } .v.wa { color: var(--a); } .v.wb { color: var(--b); } .v.wa b, .v.wb b { color: var(--fg); }
+  .tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+  button.btn { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: 600 15px system-ui, sans-serif; cursor: pointer; }
+  button.btn.alt { background: var(--box); color: var(--fg); border: 1px solid var(--line); }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">Civic Charts</a> › <a href="/states/">States</a></nav>
+<h1>How do they stack up?</h1>
+<p class="muted">Pick two states. Every number is the latest from its official source.</p>
+<div class="pick"><select id="a" aria-label="First state"></select><span class="vs">vs.</span><select id="b" aria-label="Second state"></select></div>
+<div id="out"><p class="muted">Loading the latest numbers…</p></div>
+<footer class="muted">Data from official public sources, checked against the numbers before publishing. <a href="/about/">About Civic Charts</a> · <a href="/states/">Data by state</a> · <a href="mailto:corrections@civiccharts.com">Report an error</a></footer>
+</main>
+<script>
+// Which way is "better" where it's clear; everything else is shown without a winner.
+const BETTER = {
+  'state-income': 'higher', 'state-income-pc': 'higher', 'state-min-wage': 'higher', 'business-applications': 'higher', 'state-broadband': 'higher', 'state-permits': 'higher',
+  'state-unemployment': 'lower', 'state-violent-crime': 'lower', 'state-drought': 'lower', 'state-electricity': 'lower', 'state-rent': 'lower', 'state-price-to-income': 'lower',
+};
+const WHY = { 'overdose-deaths': 'a total, not per person, so big states have more', 'state-population': 'size, not better or worse', 'state-president': 'politics, not better or worse',
+  'state-home-values': 'good for owners, harder for buyers', 'state-hpi': 'good for owners, harder for buyers', 'state-temperature': 'warming since 1901-2000, not a contest', 'state-federal-contracts': 'more spending isn\'t simply better' };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const slug = n => n.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+function fmt(v, c) {
+  const f = c.unitFormat || {}, small = Math.abs(v) < 100, d = f.decimals ?? (small ? 2 : 0);
+  const n = Number(v).toLocaleString('en-US', { minimumFractionDigits: f.format === 'usd' && small ? 2 : 0, maximumFractionDigits: Math.max(d, f.format === 'usd' && small ? 2 : 0) });
+  return f.format === 'usd' ? `$${n}` : f.format === 'pct' ? `${n}%` : n;
+}
+function asOf(t, c) {
+  const s = String(t || ''); if (!/^\d{4}-\d{2}/.test(s)) return s;
+  const [y, m] = s.split('-'), mon = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[+m - 1];
+  return ['annual', 'fiscal', 'quadrennial'].includes(c.frequency) ? y : c.frequency === 'quarterly' ? `Q${Math.ceil(+m / 3)} ${y}` : `${mon} ${y}`;
+}
+const ord = k => k + (['th', 'st', 'nd', 'rd'][(k % 100 > 10 && k % 100 < 14) ? 0 : Math.min(k % 10, 4) % 4] || 'th');
+const rankText = (c, name) => { const all = Object.values(c.places), v = c.places[name], above = all.filter(x => x > v).length, below = all.filter(x => x < v).length, n = all.length, t = all.filter(x => x === v).length > 1 ? 'tied for ' : ''; return t + (above === 0 ? `highest of ${n}` : below === 0 ? `lowest of ${n}` : above + 1 <= n / 2 ? `${ord(above + 1)} highest of ${n}` : `${ord(below + 1)} lowest of ${n}`); };
+
+let charts = [], states = [], result = null;
+const qs = new URLSearchParams(location.search);
+const saved = (() => { try { return localStorage.getItem('ps-state') || ''; } catch { return ''; } })();
+fetch('/ai/index.json').then(r => r.json()).then(idx => {
+  charts = idx.charts.filter(c => c.geo === 'us-states' && c.places && Object.keys(c.places).length > 20);
+  states = [...new Set(charts.flatMap(c => Object.keys(c.places)))].sort();
+  const opts = sel => states.map(n => `<option value="${slug(n)}"${slug(n) === sel ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  const CODES = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming' };
+  const a0 = qs.get('a') || (CODES[saved] ? slug(CODES[saved]) : 'iowa'), b0 = qs.get('b') || (a0 === 'new-mexico' ? 'iowa' : 'new-mexico');
+  document.getElementById('a').innerHTML = opts(a0); document.getElementById('b').innerHTML = opts(b0);
+  for (const id of ['a', 'b']) document.getElementById(id).onchange = render;
+  render();
+}).catch(() => { document.getElementById('out').innerHTML = '<p>Couldn\'t load the data. Try again in a moment.</p>'; });
+
+function render() {
+  const A = states.find(n => slug(n) === document.getElementById('a').value), B = states.find(n => slug(n) === document.getElementById('b').value);
+  history.replaceState(null, '', `?a=${slug(A)}&b=${slug(B)}`);
+  document.title = `${A} vs. ${B}: how they compare | Civic Charts`;
+  if (A === B) { document.getElementById('out').innerHTML = '<p class="muted">Pick two different states.</p>'; return; }
+  let wa = 0, wb = 0, tie = 0;
+  const rows = charts.filter(c => c.places[A] != null && c.places[B] != null).map(c => {
+    const va = c.places[A], vb = c.places[B], dir = BETTER[c.id];
+    const win = !dir || va === vb ? null : (dir === 'higher' ? va > vb : va < vb) ? 'a' : 'b';
+    if (dir) { if (win === 'a') wa++; else if (win === 'b') wb++; else tie++; }
+    return { c, va, vb, dir, win };
+  });
+  // Clear "better" measures first, then the rest.
+  rows.sort((x, y) => (x.dir ? 0 : 1) - (y.dir ? 0 : 1));
+  result = { A, B, wa, wb, tie, rows };
+  const lead = wa === wb ? `${esc(A)} and ${esc(B)} are even` : `${esc(wa > wb ? A : B)} comes out ahead`;
+  const cell = (r, side, name) => `<div class="v${r.win === side ? ` win w${side}` : ''}"><b>${esc(fmt(side === 'a' ? r.va : r.vb, r.c))}</b><span>${esc(name)} · ${esc(rankText(r.c, name))}${r.win === side ? ` · <span class="tag">${r.dir === 'higher' ? 'higher' : 'lower'} is better</span>` : ''}</span></div>`;
+  document.getElementById('out').innerHTML = `
+    <div class="score"><div class="big"><span class="ca">${wa}</span> – <span class="cb">${wb}</span></div><div>${lead} on the ${wa + wb + tie} measures where better is clear${tie ? ` (${tie} tied)` : ''}.</div></div>
+    <div class="btns"><button class="btn" id="share">Share this matchup</button><button class="btn alt" id="img">Download image</button></div>
+    ${rows.map(r => `<div class="row"><div class="m"><a href="/states/${slug(A)}/${r.c.id}/">${esc(r.c.title.replace(/\s+by state$/i, ''))}</a> <small>${esc(asOf(r.c.placesAsOf, r.c))} · ${r.dir ? `${r.dir} is better` : esc(WHY[r.c.id] || 'no winner')} · ${esc(r.c.source?.publisher || '')}</small></div>${cell(r, 'a', A)}${cell(r, 'b', B)}</div>`).join('')}
+    <p class="muted">"Better" is only called where it's clear (lower unemployment, higher income). Ranks run across all states with data, highest first. Each measure links to its full page and source.</p>`;
+  document.getElementById('share').onclick = share;
+  document.getElementById('img').onclick = () => image().then(blob => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${slug(A)}-vs-${slug(B)}.png`; a.click(); });
+}
+async function share() {
+  const { A, B, wa, wb } = result, url = location.href, text = `${A} vs. ${B}: ${wa}–${wb} on measures where better is clear. See how your state compares, from official data:`;
+  try { const blob = await image(); const file = new File([blob], `${slug(A)}-vs-${slug(B)}.png`, { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) return await navigator.share({ files: [file], text: `${text} ${url}` });
+    if (navigator.share) return await navigator.share({ title: `${A} vs. ${B}`, text, url });
+  } catch (e) { if (e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(`${text} ${url}`); document.getElementById('share').textContent = 'Link copied'; } catch { prompt('Copy this link:', url); }
+}
+// A 1080x1350 share card: the score and the clearest head-to-heads.
+function image() {
+  const { A, B, wa, wb, rows } = result, W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const x = cv.getContext('2d'), CA = '#2a78d6', CB = '#e2742c';
+  x.fillStyle = '#f6f5f1'; x.fillRect(0, 0, W, H); x.fillStyle = '#1b1b1b'; x.textBaseline = 'top';
+  x.font = '800 64px system-ui, sans-serif'; x.fillStyle = CA; x.fillText(A, 70, 80); x.fillStyle = '#777'; x.font = '700 40px system-ui, sans-serif'; x.fillText('vs.', 70, 160); x.fillStyle = CB; x.font = '800 64px system-ui, sans-serif'; x.fillText(B, 70, 215);
+  x.font = '800 120px system-ui, sans-serif'; x.textAlign = 'right'; x.fillStyle = CA; x.fillText(String(wa), W - 250, 120); x.fillStyle = '#999'; x.fillText('–', W - 175, 120); x.fillStyle = CB; x.fillText(String(wb), W - 70, 120); x.textAlign = 'left';
+  x.fillStyle = '#555'; x.font = '400 30px system-ui, sans-serif'; x.fillText('on measures where better is clear', 70, 320);
+  let y = 400;
+  for (const r of rows.filter(r => r.dir).slice(0, 7)) {
+    x.fillStyle = '#ddd9cf'; x.fillRect(70, y - 14, W - 140, 2);
+    x.fillStyle = '#1b1b1b'; x.font = '600 30px system-ui, sans-serif'; x.fillText(r.c.title.replace(/\s+by state$/i, ''), 70, y);
+    x.font = '700 34px system-ui, sans-serif';
+    x.fillStyle = r.win === 'a' ? CA : '#888'; x.fillText(fmt(r.va, r.c) + (r.win === 'a' ? ' ✓' : ''), 70, y + 42);
+    x.textAlign = 'right'; x.fillStyle = r.win === 'b' ? CB : '#888'; x.fillText((r.win === 'b' ? '✓ ' : '') + fmt(r.vb, r.c), W - 70, y + 42); x.textAlign = 'left';
+    y += 108;
+  }
+  x.fillStyle = '#555'; x.font = '400 24px system-ui, sans-serif'; x.fillText('Official data: Census, BLS, DOL, FBI, EIA and more. Compare any two states:', 70, H - 110);
+  x.fillStyle = '#1d4e89'; x.font = '700 28px system-ui, sans-serif'; x.fillText('civiccharts.com/states/compare', 70, H - 72);
+  return new Promise(res => cv.toBlob(res, 'image/png'));
+}
+</script>
+</body>
+</html>

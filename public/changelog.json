@@ -1,6 +1,12 @@
 [
   {
     "date": "2026-11-25",
+    "major": true,
+    "title": "Compare two states",
+    "text": "See how any two states stack up on income, jobs, rent, crime and more, side by side, with a scoreboard and a share image for the rivalry."
+  },
+  {
+    "date": "2026-11-25",
     "title": "Picking your state now filters the lists",
     "text": "Charts with your state's data come first, each showing your state's number and rank. National charts are one tap away."
   },
