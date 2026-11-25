@@ -2,6 +2,16 @@
   {
     "date": "2026-11-25",
     "major": true,
+    "title": "Search answers your question",
+    "text": "Ask \"unemployment in Texas\" or \"rent in Hennepin County, MN\" and get the number, its rank and a chart already focused on that place."
+  },
+  {
+    "date": "2026-11-25",
+    "title": "Fixed: searches that name a state or county now find results"
+  },
+  {
+    "date": "2026-11-25",
+    "major": true,
     "title": "A page for every county",
     "text": "Every U.S. county now has its own page with its income, rent, home values, health, internet access and more, each ranked among the state's counties and next to the typical U.S. county."
   },

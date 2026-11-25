@@ -219,7 +219,8 @@ for (const c of countyCharts) for (const x of infos[c.id].counties) {
 const inState = new Map(), usMedian = new Map();
 for (const c of countyCharts) {
   const all = infos[c.id].counties, by = {};
-  for (const x of all) (by[String(x.id).slice(0, 2)] ||= []).push(x.value);
+  // Same rule as the charts: rates rank only counties with 5,000+ residents.
+  for (const x of all) if (!c.isRate || x.pop == null || x.pop >= 5000) (by[String(x.id).slice(0, 2)] ||= []).push(x.value);
   inState.set(c.id, by);
   const sorted = all.slice().sort((a, b) => a.value - b.value); usMedian.set(c.id, sorted[Math.floor(sorted.length / 2)]?.valueText);
 }
@@ -237,12 +238,14 @@ for (const [fips, k] of counties) {
   // Plain sentences for the headline measures; others are listed below.
   const PHRASE = { 'county-income': v => `the median household income is ${v}`, 'county-rent': v => `the median rent is ${v} a month`, 'county-home-value': v => `the median home value is ${v}`,
     'county-poverty': v => `${v} of people live below the poverty line`, 'county-uninsured': v => `${v} of adults 18 to 64 have no health insurance`, 'county-broadband': v => `${v} of households have broadband` };
+  const unranked = it => it.c.isRate && it.x.pop != null && it.x.pop < 5000;
+  const rankOf = it => (unranked(it) ? '' : posText(inState.get(it.c.id)[fips.slice(0, 2)] || [], it.x.value));
   const lead = LEAD.map(id => k.items.find(it => it.c.id === id)).filter(Boolean).slice(0, 3)
-    .map(it => `${PHRASE[it.c.id](it.x.valueText)} (${posText(inState.get(it.c.id)[fips.slice(0, 2)], it.x.value)} counties in ${st.name})`);
+    .map(it => `${PHRASE[it.c.id](it.x.valueText)}${rankOf(it) ? ` (${rankOf(it)} counties in ${st.name})` : ''}`);
   const groups = {};
   for (const it of k.items) (groups[it.c.topic] ||= []).push(it);
   const sections = Object.entries(groups).sort((a, b) => (CTOPIC.indexOf(a[0]) + 99) % 99 - (CTOPIC.indexOf(b[0]) + 99) % 99).map(([t, its]) => `<h2>${esc(topicName(t))}</h2><ul class="list">${its.map(({ c, info, x }) => {
-    const pos = posText(inState.get(c.id)[fips.slice(0, 2)], x.value), us = usMedian.get(c.id), src = info.source || {};
+    const pos = rankOf({ c, x }), us = usMedian.get(c.id), src = info.source || {};
     return `<li><a href="/${c.id}/?state=${st.code}"><b>${esc(unitOf(info))}</b></a>: <b>${esc(x.valueText)}</b>${pos ? `, ${esc(pos)} in ${esc(st.name)}` : ''}${us ? `. Typical U.S. county: ${esc(us)}` : ''}. <span class="muted">${esc(info.us?.asOf || '')} · ${esc(src.publisher || '')}</span></li>`;
   }).join('')}</ul>`).join('');
   const small = k.pop != null && k.pop < 5000;
@@ -251,8 +254,8 @@ for (const [fips, k] of counties) {
   const body = `<nav><a href="/">Civic Charts</a> › <a href="/states/">States</a> › <a href="/states/${st.slug}/">${esc(st.name)}</a></nav>
 <h1>${esc(k.name)}, ${esc(st.name)} by the numbers</h1>
 <p class="answer">${esc(answer.charAt(0).toUpperCase() + answer.slice(1))}</p>
-${small ? `<p class="muted">${esc(k.name)} has about ${Number(k.pop).toLocaleString('en-US')} residents. In small counties, rates can swing a lot from a handful of people, so read them with care.</p>` : ''}
-<p class="muted">${k.items.length} measures, each from its official source. Ranks are among ${esc(st.name)}'s counties with data (1st = highest). Each measure opens its map, zoomed to ${esc(st.name)}.</p>
+${small ? `<p class="muted">${esc(k.name)} has about ${Number(k.pop).toLocaleString('en-US')} residents. In small counties, rates can swing a lot from a handful of people, so it isn't ranked on them (rankings, like the charts, include counties with 5,000 or more residents).</p>` : ''}
+<p class="muted">${k.items.length} measures, each from its official source. Ranks are among ${esc(st.name)}'s counties with data (1st = highest); rates count counties with 5,000+ residents, like the charts. Each measure opens its map, zoomed to ${esc(st.name)}.</p>
 ${sections}
 <h2>More about ${esc(st.name)}</h2><p><a href="/states/${st.slug}/">${esc(st.name)} by the numbers</a> · <a href="/states/compare/?a=${st.slug}">Compare ${esc(st.name)} with another state</a></p>
 <p class="muted">Cite: Civic Charts. "${esc(k.name)}, ${esc(st.name)} by the numbers." ${url}</p>`;

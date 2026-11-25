@@ -305,3 +305,9 @@ body.embed .transport { padding: 2px 10px 2px 2px; border: 0; background: none; 
 .reddit-subs { display: grid; gap: 6px; margin: 4px 0 10px; }
 .reddit-sub { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 2px; }
 .reddit-sub small { color: var(--muted); font-weight: 400; }
+/* Search that answers: the number for the place asked about, and a chart focused there. */
+.answer-card { display: flex; flex-direction: column; gap: 4px; padding: 14px; margin: 10px 0 14px; border-radius: 12px; border: 2px solid var(--accent); background: var(--panel, var(--bg)); }
+.answer-card > .muted:first-child { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.answer-card b { font-size: 17px; }
+.answer-card .ans-val { font-size: 22px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.answer-card .btn { margin-top: 8px; align-self: flex-start; }

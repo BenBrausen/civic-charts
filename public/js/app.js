@@ -422,11 +422,109 @@
     else out.sort((a, b) => b.score - a.score || a.c.title.localeCompare(b.c.title));
     return out.map(x => x.c);
   }
+  // ---------- search that answers ----------
+  // Finds a place in the question ("unemployment in Texas", "rent in Hennepin County, MN", "TX jobs"),
+  // searches the rest as the topic, and answers with the number, its rank and a chart focused there.
+  const COUNTY_RE = /\b(county|parish|borough|census area|city and borough)\b/i;
+  let countyNames = null; // [{ id, name ("Hennepin County, MN"), short ("hennepin county"), st ("MN") }]
+  async function loadCountyNames() {
+    if (countyNames) return countyNames;
+    try {
+      const ds = await PS.loadDataset('county-population');
+      countyNames = ds.entities.map(e => { const [n, st] = e.name.split(/,\s*(?=[A-Z]{2}$)/); return { id: e.id, name: e.name, short: n.toLowerCase(), st }; });
+    } catch { countyNames = []; }
+    return countyNames;
+  }
+  function placeIn(q) {
+    let text = ` ${q.toLowerCase().replace(/[^a-z0-9 ,.'-]/g, ' ')} `;
+    const states = PS.STATE_LIST.map(([code, fips, name]) => ({ code, fips, name }));
+    let st = null, county = null;
+    // Counties: "<name> County[, ST|State]"; the name is matched against real county names.
+    if (COUNTY_RE.test(text) && countyNames?.length) {
+      const m = new RegExp(`((?:[a-z.'-]+\\s+){1,4}?)(?:${COUNTY_RE.source.slice(3, -3)})`, 'i').exec(text);
+      if (m) {
+        const words = (m[0]).trim().split(/\s+/);
+        const after = text.slice(m.index + m[0].length).replace(/^[\s,]+/, '');
+        const stAfter = states.find(x => after.startsWith(x.name.toLowerCase())) || states.find(x => new RegExp(`^${x.code.toLowerCase()}\\b`).test(after));
+        for (let k = 0; k < words.length - 1 && !county; k++) {
+          const cand = words.slice(k).join(' ');
+          const hits = countyNames.filter(c => c.short === cand && (!stAfter || c.st === stAfter.code) && (stAfter || !stateInfo() || c.st === stateInfo().code));
+          if (hits.length === 1 || (hits.length && (stAfter || stateInfo()))) county = hits[0];
+          if (county) text = text.replace(cand, ' ');
+        }
+        if (stAfter && county) text = text.replace(new RegExp(`\\b(${stAfter.name.toLowerCase()}|${stAfter.code.toLowerCase()})\\b`), ' ');
+        if (county) st = states.find(x => x.code === county.st);
+      }
+    }
+    if (!st) {
+      st = states.slice().sort((a, b) => b.name.length - a.name.length).find(x => text.includes(` ${x.name.toLowerCase()} `) || text.includes(` ${x.name.toLowerCase()}'`));
+      if (st) text = text.replace(st.name.toLowerCase(), ' ');
+      else {
+        // Two-letter codes only as written in capitals ("TX"), so "in" and "or" stay words.
+        const m = /(?:^|[\s,])([A-Z]{2})(?=$|[\s,.?])/.exec(q);
+        st = m && states.find(x => x.code === m[1]);
+        if (st) text = text.replace(new RegExp(`\\b${st.code.toLowerCase()}\\b`), ' ');
+      }
+    }
+    const topic = text.replace(/\b(home|house|housing) prices?\b/g, 'home value')
+      .replace(/\b(in|for|of|the|what|whats|what's|is|are|how|much|does|do|my|state|county|right now|now|today|latest|current)\b/g, ' ').replace(/[\s,]+/g, ' ').trim();
+    return { st, county, topic };
+  }
+  function answerHTML(q) {
+    if (!q || q.length < 3) return '';
+    const { st, county, topic } = placeIn(q);
+    const results = searchLocal(topic || q, S.search);
+    const want = county ? 'us-counties' : st ? 'us-states' : null;
+    // Among matches, the most direct title wins: "income" means household income, not "home price
+    // to income"; "inflation" means the inflation rate, not "...adjusted for inflation".
+    const qw = (topic || q).toLowerCase().split(/\s+/).filter(w => w.length > 2).map(w => w.replace(/(ies|s)$/, m => (m === 'ies' ? 'y' : '')));
+    const GENERIC = new Set(['median', 'typical', 'average', 'rate', 'total', 'share', 'national']);
+    const fit = x => {
+      const t = x.title.toLowerCase().replace(/\s+by (state|county)$/, '').replace(/,?\s*adjusted for inflation$/, ' adjusted'), ws = t.split(/[^a-z0-9]+/).filter(w => w.length > 2);
+      const hit = w => qw.some(q0 => w.startsWith(q0));
+      let f = ws.filter(w => !hit(w) && !GENERIC.has(w)).length;           // words the question didn't ask for
+      if (ws.length && hit(ws[ws.length - 1])) f -= 1;                         // the title's main word is the question's
+      for (let i = 0; i < qw.length - 1; i++) if (t.includes(`${qw[i]} ${qw[i + 1]}`)) f -= 1.5; // words together, in order
+      if (/adjusted$/.test(t)) f += 1;                                         // inflation-adjusted twins only when asked
+      return f;
+    };
+    const best = list => list.map((x, i) => ({ x, i, f: fit(x) })).sort((a, b) => a.f - b.f || a.i - b.i)[0]?.x;
+    const c = (want && (best(results.filter(x => x.geo === want)) || (st && best(results.filter(x => x.geo === 'us-counties'))))) || (!want ? best(results.slice(0, 12)) : null);
+    if (!c) return '';
+    const where = county ? county.name : st && c.geo ? st.name : 'U.S.';
+    let value = '';
+    if (!county && st && c.geo === 'us-states') value = stateValueText(c, { ...st }).replace(/^[^:]+: /, '');
+    else if (!county && (!st || !c.geo)) value = latestText(c);
+    const id = `ans-${c.id}-${county?.id || st?.code || 'us'}`;
+    if (county) setTimeout(() => fillCountyAnswer(id, c, county), 0);
+    const label = st && c.geo === 'us-counties' && !county ? `${st.name} counties` : where;
+    const what = c.title.replace(/\s+by (state|county)$/i, '');
+    return `<div class="answer-card" id="${id}"><span class="muted">Answer</span><b>${esc(label === 'U.S.' ? what : `${what}: ${label}`)}</b>
+      <span class="ans-val">${value ? esc(value) : county ? 'Looking it up…' : esc(latestText(c))}</span><span class="muted">${esc(c.source.publisher)}</span>
+      <button class="btn primary" data-act="answer" data-id="${c.id}" data-state="${st?.code || ''}" data-county="${county?.id || ''}">Open chart${st ? ` for ${esc(county ? county.name : st.name)}` : ''}</button></div>`;
+  }
+  async function fillCountyAnswer(elId, c, county) {
+    try {
+      const ds = await PS.loadDataset(c.id), li = ds.times.length - 1, e = ds.entities.find(x => x.id === county.id);
+      const el = document.getElementById(elId)?.querySelector('.ans-val'); if (!el) return;
+      if (!e || e.values[li] == null) { el.textContent = `No value for ${county.name} in this data.`; return; }
+      // Same rule as the charts: rates rank only counties with 5,000+ residents.
+      const big = x => !ds.isRate || x.pop == null || x.pop >= 5000;
+      const v = e.values[li], peers = ds.entities.filter(x => x.id.slice(0, 2) === county.id.slice(0, 2) && x.values[li] != null && big(x)).map(x => x.values[li]);
+      const stName = PS.STATE_LIST.find(x => x[1] === county.id.slice(0, 2))?.[2] || 'the state';
+      if (!big(e)) { el.textContent = `${PS.fmt(v, ds.unit)} · not ranked (fewer than 5,000 residents) · ${PS.fmtDate(ds._tms ? ds._tms[li] : ds.times[li], ds.frequency)}`; return; }
+      const n = peers.length, above = peers.filter(x => x > v).length, below = peers.filter(x => x < v).length, tied = peers.filter(x => x === v).length > 1;
+      const ord = k => k + (['th', 'st', 'nd', 'rd'][(k % 100 > 10 && k % 100 < 14) ? 0 : Math.min(k % 10, 4) % 4] || 'th');
+      const pos = above === 0 ? `highest of ${n}` : below === 0 ? `lowest of ${n}` : above + 1 <= n / 2 ? `${ord(above + 1)} highest of ${n}` : `${ord(below + 1)} lowest of ${n}`;
+      el.textContent = `${PS.fmt(v, ds.unit)} · ${tied ? 'tied for ' : ''}${pos} counties in ${stName} · ${PS.fmtDate(ds._tms ? ds._tms[li] : ds.times[li], ds.frequency)}`;
+    } catch { const el = document.getElementById(elId)?.querySelector('.ans-val'); if (el) el.textContent = 'Open the chart to see it.'; }
+  }
   function localResultsHTML() {
-    const sc = S.search, all = searchLocal(sc.q, sc), list = forState(all);
+    const sc = S.search, { topic } = sc.q ? placeIn(sc.q) : { topic: '' };
+    const all = searchLocal(sc.q && topic !== sc.q.toLowerCase() ? topic : sc.q, sc), list = forState(all);
     const stn = stateInfo() && !S.showNational ? ` with ${esc(stateInfo().name)} data` : '';
     const head = `<p class="muted local-count"><b>${list.length}</b> of ${S.catalog.length} ready-made datasets${stn}${sc.q ? ` match "${esc(sc.q)}"` : ''}. Verified sources, updated automatically.</p>`;
-    return head + (list.length ? list.slice(0, 40).map(dsCard).join('') : '<p class="muted">No ready-made dataset matches. Search data.gov and state portals below.</p>') + nationalToggle(all);
+    return answerHTML(sc.q) + head + (list.length ? list.slice(0, 40).map(dsCard).join('') : '<p class="muted">No ready-made dataset matches. Search data.gov and state portals below.</p>') + nationalToggle(all);
   }
   const heads = list => list.filter(c => !c.reframes || c.reframes[0] === c.id);
   function lensHTML() {
@@ -586,6 +684,7 @@
     // Ready-made results filter as you type; the slower external search waits for Search.
     const refreshLocal = () => { const el = $('#localResults'); if (el) el.innerHTML = localResultsHTML(); };
     // Count what people look for once they pause typing, not every keystroke.
+    if ($('#q')) loadCountyNames().then(() => { if (S.search.q && COUNTY_RE.test(S.search.q)) refreshLocal(); });
     $('#q')?.addEventListener('input', e => {
       S.search.q = e.target.value.trim(); refreshLocal();
       clearTimeout(S.searchTimer);
@@ -805,6 +904,14 @@
       toast(`Data saved: ${rows.length.toLocaleString()} rows, with the source on top.`);
     },
     // A ready citation for articles, school work and posts: chart, source, page link, date.
+    answer: async t => {
+      const { id, state, county } = t.dataset;
+      PS.track('search_answer', { dataset: id, place: county || state || 'us' });
+      if (state && state !== S.state) { S.state = state; try { localStorage.setItem('ps-state', state); } catch { } }
+      await selectDataset(id);
+      if (county) { o.focus = county; o.highlight = county; o.takeawayText = ''; update(); renderStep(); }
+      if (window.innerWidth < 900) document.querySelector('.stage, #stage, main')?.scrollIntoView({ behavior: 'smooth' });
+    },
     toggleNational: () => { S.showNational = !S.showNational; renderStep(); },
     cite: () => {
       const ds = S.ds, src = ds.source || {}, day = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
