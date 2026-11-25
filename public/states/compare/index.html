@@ -30,6 +30,9 @@
   .btns { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
   button.btn { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: 600 15px system-ui, sans-serif; cursor: pointer; }
   button.btn.alt { background: var(--box); color: var(--fg); border: 1px solid var(--line); }
+  #near { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -6px 0 16px; font-size: 15px; }
+  #near button { font: 600 14px system-ui, sans-serif; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--box); color: var(--fg); cursor: pointer; }
+  #near button.on { border-color: var(--b); color: var(--b); }
   footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
 </style>
 </head>
@@ -39,6 +42,7 @@
 <h1>How do they stack up?</h1>
 <p class="muted">Pick two states. Every number is the latest from its official source.</p>
 <div class="pick"><select id="a" aria-label="First state"></select><span class="vs">vs.</span><select id="b" aria-label="Second state"></select></div>
+<div id="near"></div>
 <div id="out"><p class="muted">Loading the latest numbers…</p></div>
 <footer class="muted">Data from official public sources, checked against the numbers before publishing. <a href="/about/">About Civic Charts</a> · <a href="/states/">Data by state</a> · <a href="mailto:corrections@civiccharts.com">Report an error</a></footer>
 </main>
@@ -73,14 +77,50 @@ fetch('/ai/index.json').then(r => r.json()).then(idx => {
   states = [...new Set(charts.flatMap(c => Object.keys(c.places)))].sort();
   const opts = sel => states.map(n => `<option value="${slug(n)}"${slug(n) === sel ? ' selected' : ''}>${esc(n)}</option>`).join('');
   const CODES = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming' };
-  const a0 = qs.get('a') || (CODES[saved] ? slug(CODES[saved]) : 'iowa'), b0 = qs.get('b') || (a0 === 'new-mexico' ? 'iowa' : 'new-mexico');
+  const a0 = qs.get('a') || (CODES[saved] ? slug(CODES[saved]) : 'wisconsin');
+  const aName = states.find(n => slug(n) === a0), firstNeighbor = (NEIGHBORS[aName] || []).find(n => states.includes(n));
+  const b0 = qs.get('b') || (firstNeighbor ? slug(firstNeighbor) : a0 === 'texas' ? 'california' : 'texas');
   document.getElementById('a').innerHTML = opts(a0); document.getElementById('b').innerHTML = opts(b0);
   for (const id of ['a', 'b']) document.getElementById(id).onchange = render;
   render();
 }).catch(() => { document.getElementById('out').innerHTML = '<p>Couldn\'t load the data. Try again in a moment.</p>'; });
 
+// Bordering states: the comparisons people make most.
+const NEIGHBORS = {
+  'Alabama': ['Florida', 'Georgia', 'Mississippi', 'Tennessee'], 'Alaska': [], 'Arizona': ['California', 'Colorado', 'Nevada', 'New Mexico', 'Utah'],
+  'Arkansas': ['Louisiana', 'Mississippi', 'Missouri', 'Oklahoma', 'Tennessee', 'Texas'], 'California': ['Arizona', 'Nevada', 'Oregon'],
+  'Colorado': ['Arizona', 'Kansas', 'Nebraska', 'New Mexico', 'Oklahoma', 'Utah', 'Wyoming'], 'Connecticut': ['Massachusetts', 'New York', 'Rhode Island'],
+  'Delaware': ['Maryland', 'New Jersey', 'Pennsylvania'], 'District of Columbia': ['Maryland', 'Virginia'], 'Florida': ['Alabama', 'Georgia'],
+  'Georgia': ['Alabama', 'Florida', 'North Carolina', 'South Carolina', 'Tennessee'], 'Hawaii': [], 'Idaho': ['Montana', 'Nevada', 'Oregon', 'Utah', 'Washington', 'Wyoming'],
+  'Illinois': ['Indiana', 'Iowa', 'Kentucky', 'Missouri', 'Wisconsin'], 'Indiana': ['Illinois', 'Kentucky', 'Michigan', 'Ohio'],
+  'Iowa': ['Illinois', 'Minnesota', 'Missouri', 'Nebraska', 'South Dakota', 'Wisconsin'], 'Kansas': ['Colorado', 'Missouri', 'Nebraska', 'Oklahoma'],
+  'Kentucky': ['Illinois', 'Indiana', 'Missouri', 'Ohio', 'Tennessee', 'Virginia', 'West Virginia'], 'Louisiana': ['Arkansas', 'Mississippi', 'Texas'],
+  'Maine': ['New Hampshire'], 'Maryland': ['Delaware', 'District of Columbia', 'Pennsylvania', 'Virginia', 'West Virginia'],
+  'Massachusetts': ['Connecticut', 'New Hampshire', 'New York', 'Rhode Island', 'Vermont'], 'Michigan': ['Indiana', 'Ohio', 'Wisconsin'],
+  'Minnesota': ['Iowa', 'North Dakota', 'South Dakota', 'Wisconsin'], 'Mississippi': ['Alabama', 'Arkansas', 'Louisiana', 'Tennessee'],
+  'Missouri': ['Arkansas', 'Illinois', 'Iowa', 'Kansas', 'Kentucky', 'Nebraska', 'Oklahoma', 'Tennessee'], 'Montana': ['Idaho', 'North Dakota', 'South Dakota', 'Wyoming'],
+  'Nebraska': ['Colorado', 'Iowa', 'Kansas', 'Missouri', 'South Dakota', 'Wyoming'], 'Nevada': ['Arizona', 'California', 'Idaho', 'Oregon', 'Utah'],
+  'New Hampshire': ['Maine', 'Massachusetts', 'Vermont'], 'New Jersey': ['Delaware', 'New York', 'Pennsylvania'], 'New Mexico': ['Arizona', 'Colorado', 'Oklahoma', 'Texas', 'Utah'],
+  'New York': ['Connecticut', 'Massachusetts', 'New Jersey', 'Pennsylvania', 'Vermont'], 'North Carolina': ['Georgia', 'South Carolina', 'Tennessee', 'Virginia'],
+  'North Dakota': ['Minnesota', 'Montana', 'South Dakota'], 'Ohio': ['Indiana', 'Kentucky', 'Michigan', 'Pennsylvania', 'West Virginia'],
+  'Oklahoma': ['Arkansas', 'Colorado', 'Kansas', 'Missouri', 'New Mexico', 'Texas'], 'Oregon': ['California', 'Idaho', 'Nevada', 'Washington'],
+  'Pennsylvania': ['Delaware', 'Maryland', 'New Jersey', 'New York', 'Ohio', 'West Virginia'], 'Rhode Island': ['Connecticut', 'Massachusetts'],
+  'South Carolina': ['Georgia', 'North Carolina'], 'South Dakota': ['Iowa', 'Minnesota', 'Montana', 'Nebraska', 'North Dakota', 'Wyoming'],
+  'Tennessee': ['Alabama', 'Arkansas', 'Georgia', 'Kentucky', 'Mississippi', 'Missouri', 'North Carolina', 'Virginia'], 'Texas': ['Arkansas', 'Louisiana', 'New Mexico', 'Oklahoma'],
+  'Utah': ['Arizona', 'Colorado', 'Idaho', 'Nevada', 'New Mexico', 'Wyoming'], 'Vermont': ['Massachusetts', 'New Hampshire', 'New York'],
+  'Virginia': ['District of Columbia', 'Kentucky', 'Maryland', 'North Carolina', 'Tennessee', 'West Virginia'], 'Washington': ['Idaho', 'Oregon'],
+  'West Virginia': ['Kentucky', 'Maryland', 'Ohio', 'Pennsylvania', 'Virginia'], 'Wisconsin': ['Illinois', 'Iowa', 'Michigan', 'Minnesota'],
+  'Wyoming': ['Colorado', 'Idaho', 'Montana', 'Nebraska', 'South Dakota', 'Utah'],
+};
+function nearChips(A, B) {
+  const list = (NEIGHBORS[A] || []).filter(n => states.includes(n));
+  document.getElementById('near').innerHTML = list.length ? `<span class="muted">${esc(A)}'s neighbors:</span>${list.map(n => `<button type="button" data-n="${slug(n)}" class="${n === B ? 'on' : ''}">${esc(n)}</button>`).join('')}` : '';
+  for (const btn of document.querySelectorAll('#near button')) btn.onclick = () => { document.getElementById('b').value = btn.dataset.n; render(); };
+}
+
 function render() {
   const A = states.find(n => slug(n) === document.getElementById('a').value), B = states.find(n => slug(n) === document.getElementById('b').value);
+  nearChips(A, B);
   history.replaceState(null, '', `?a=${slug(A)}&b=${slug(B)}`);
   document.title = `${A} vs. ${B}: how they compare | Civic Charts`;
   if (A === B) { document.getElementById('out').innerHTML = '<p class="muted">Pick two different states.</p>'; return; }
