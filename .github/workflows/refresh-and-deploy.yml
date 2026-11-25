@@ -78,3 +78,12 @@ jobs:
         run: sleep 60
       - if: vars.PAGES_ENABLED == 'true' && steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
+      # Tell search engines which pages changed (IndexNow), then remember what was sent.
+      - if: vars.PAGES_ENABLED == 'true'
+        continue-on-error: true
+        run: |
+          node scripts/indexnow.mjs
+          git add indexnow-state.json 2>/dev/null || exit 0
+          git diff --cached --quiet && exit 0
+          git -c user.name="civiccharts-bot" -c user.email="civiccharts-bot@users.noreply.github.com" commit -q -m "IndexNow state"
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done

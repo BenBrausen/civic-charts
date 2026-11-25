@@ -196,6 +196,23 @@ await fs.writeFile(path.join(SITE, 'states', 'index.html'), statePage({ title: '
   body: `<nav><a href="/">Civic Charts</a></nav><h1>Data by state</h1><p class="answer">Pick a state for its latest official numbers, each ranked against every state, with the source.</p><ul class="list">${[...states.values()].sort((a, b) => a.name.localeCompare(b.name)).map(st => `<li><a href="/states/${st.slug}/">${esc(st.name)}</a></li>`).join('')}</ul>` }));
 stateUrls.push(`${ORIGIN}/states/`);
 
+// 4c. What each page shows, as a fingerprint, so IndexNow (scripts/indexnow.mjs) only tells
+// search engines about pages whose data actually changed, not every page on every refresh.
+const sigs = {};
+const sig = (...parts) => parts.map(x => String(x ?? '')).join('|');
+for (const c of catalog) if (infos[c.id]) sigs[`${ORIGIN}/${c.id}/`] = sig(c.lastObservation, infos[c.id].headline);
+for (const [, st] of states) {
+  for (const { c, p } of st.items) sigs[`${ORIGIN}/states/${st.slug}/${c.id}/`] = sig(c.lastObservation, p.headline);
+  sigs[`${ORIGIN}/states/${st.slug}/`] = sig(...st.items.map(x => x.c.lastObservation));
+}
+sigs[`${ORIGIN}/`] = sig(catalog.length, releases[0]?.released);
+sigs[`${ORIGIN}/states/`] = sig(states.size);
+for (const f of ['about', 'changelog', 'privacy', 'terms', 'ai']) {
+  try { sigs[`${ORIGIN}/${f}/`] = sig((await fs.readFile(path.join(PUB, f, 'index.html'), 'utf8')).length, f === 'changelog' ? (await fs.readFile(path.join(PUB, 'changelog.json'), 'utf8')).length : ''); } catch { }
+}
+await fs.mkdir(path.join(ROOT, 'out'), { recursive: true });
+await fs.writeFile(path.join(ROOT, 'out', 'page-signatures.json'), JSON.stringify(sigs));
+
 // 5. Sitemap with every page.
 const day = t => String(t || '').slice(0, 10);
 const urls = [`  <url><loc>${ORIGIN}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
