@@ -1,5 +1,57 @@
 [
  {
+  "id": "state-drought",
+  "title": "Drought by state",
+  "released": "2026-11-25T14:07:05.777Z",
+  "lastObservation": "2026-11-24",
+  "previousObservation": "2026-11-17",
+  "latest": {
+   "t": "2026-11-24",
+   "v": 33.61,
+   "series": "Contiguous U.S."
+  },
+  "previous": {
+   "t": "2026-11-17",
+   "v": 35.14,
+   "series": "Contiguous U.S."
+  },
+  "unit": {
+   "label": "Share of land area in drought (moderate or worse)",
+   "format": "pct",
+   "decimals": 0,
+   "max": 100
+  },
+  "frequency": "weekly",
+  "topic": "environment",
+  "publisher": "U.S. Drought Monitor (National Drought Mitigation Center, USDA and NOAA)"
+ },
+ {
+  "id": "county-drought",
+  "title": "Drought by county",
+  "released": "2026-11-25T14:07:05.777Z",
+  "lastObservation": "2026-11-24",
+  "previousObservation": "2026-11-17",
+  "latest": {
+   "t": "2026-11-24",
+   "v": 33.61,
+   "series": "Contiguous U.S."
+  },
+  "previous": {
+   "t": "2026-11-17",
+   "v": 35.14,
+   "series": "Contiguous U.S."
+  },
+  "unit": {
+   "label": "Share of land area in drought (moderate or worse)",
+   "format": "pct",
+   "decimals": 0,
+   "max": 100
+  },
+  "frequency": "weekly",
+  "topic": "environment",
+  "publisher": "U.S. Drought Monitor (National Drought Mitigation Center, USDA and NOAA)"
+ },
+ {
   "id": "state-hpi",
   "title": "Home price growth by state",
   "released": "2026-11-24T22:21:51.522Z",

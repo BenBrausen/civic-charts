@@ -22,7 +22,7 @@
    "Postings on one website, not total U.S. job openings. The official measure is the BLS Job Openings and Labor Turnover Survey (JOLTS)."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-11-13",
   "buildHash": "kfxr6m",
   "latest": {
@@ -68,7 +68,7 @@
    "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "10blojp",
   "latest": null,
@@ -106,7 +106,7 @@
   ],
   "geo": "us-states",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-01-01",
   "buildHash": "8wa2z3",
   "latest": {
@@ -202,7 +202,7 @@
   ],
   "geo": "us-states",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-01-01",
   "buildHash": "4635bm",
   "latest": {
@@ -289,7 +289,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "1fize4r",
   "latest": {
@@ -383,7 +383,7 @@
   ],
   "geo": "us-states",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-01-01",
   "buildHash": "egtpn",
   "latest": {
@@ -483,7 +483,7 @@
    "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "10blojp",
   "latest": null,
@@ -520,7 +520,7 @@
    "The survey changed from phone to online interviews in 2024, which may affect comparisons with earlier years."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "1oh4dc1",
   "latest": {
@@ -564,7 +564,7 @@
   ],
   "zeroLine": true,
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "14zorey",
   "latest": {
@@ -612,7 +612,7 @@
    "UNRATE"
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "1cigjvy",
   "latest": {
@@ -658,7 +658,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "17unu8n",
   "latest": {
@@ -896,7 +896,7 @@
    "Prices are in dollars of each year. A $3 gallon in 2008 cost more in today's money than a $3 gallon today."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-11-23",
   "buildHash": "eeck45",
   "latest": {
@@ -940,7 +940,7 @@
    "Adjusted with the all-items CPI computed by Civic Charts; the source publishes nominal prices only."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-26",
   "buildHash": "eeck45",
   "latest": {
@@ -982,7 +982,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "177tfir",
   "latest": null,
@@ -1025,21 +1025,21 @@
   "geo": "us-counties",
   "description": "Share of each county's land area in moderate drought or worse, weekly over the last two years.",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
-  "lastObservation": "2026-11-17",
+  "retrieved": "2026-11-25T14:07:05.777Z",
+  "lastObservation": "2026-11-24",
   "buildHash": "1jvo0i3",
   "latest": {
-   "t": "2026-11-17",
-   "v": 35.14,
+   "t": "2026-11-24",
+   "v": 33.61,
    "series": "Contiguous U.S."
   },
-  "released": "2026-11-19T20:29:58.653Z",
+  "released": "2026-11-25T14:07:05.777Z",
   "hasNational": true,
   "topic": "environment",
   "sourceId": "usdm",
   "tier": "federal",
   "nEntities": 3144,
-  "firstObservation": "2024-11-19"
+  "firstObservation": "2024-11-26"
  },
  {
   "category": "Environment",
@@ -1070,68 +1070,68 @@
   "geo": "us-states",
   "description": "Share of each state's land area in moderate drought or worse, each week since 2000.",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
-  "lastObservation": "2026-11-17",
+  "retrieved": "2026-11-25T14:07:05.777Z",
+  "lastObservation": "2026-11-24",
   "buildHash": "1jvo0i3",
   "latest": {
-   "t": "2026-11-17",
-   "v": 35.14,
+   "t": "2026-11-24",
+   "v": 33.61,
    "series": "Contiguous U.S."
   },
   "byState": {
    "10": 10.98,
    "11": 100,
-   "12": 7.04,
-   "13": 24.16,
+   "12": 4.23,
+   "13": 26.8,
    "15": 0,
    "16": 72.58,
-   "17": 57.91,
-   "18": 33.17,
+   "17": 67.49,
+   "18": 47.01,
    "19": 0,
    "20": 11.92,
-   "21": 21.44,
-   "22": 94.8,
+   "21": 23.36,
+   "22": 99.64,
    "23": 91.22,
-   "24": 51.97,
+   "24": 52.14,
    "25": 0,
-   "26": 45.86,
+   "26": 55.38,
    "27": 7.37,
-   "28": 96.96,
-   "29": 59.91,
+   "28": 98.69,
+   "29": 59.92,
    "30": 24.59,
    "31": 35.1,
-   "32": 52.71,
-   "33": 59.47,
+   "32": 19.88,
+   "33": 63.19,
    "34": 0,
-   "35": 18.78,
-   "36": 27.78,
-   "37": 70.57,
+   "35": 10.24,
+   "36": 30.12,
+   "37": 70.16,
    "38": 44.46,
    "39": 2.47,
-   "40": 84.59,
+   "40": 84.56,
    "41": 87.1,
-   "42": 7.46,
+   "42": 11.57,
    "44": 0,
    "45": 60.82,
    "46": 37.96,
-   "47": 71.52,
-   "48": 43.07,
-   "49": 53.3,
-   "50": 32.34,
-   "51": 64.12,
+   "47": 73.88,
+   "48": 37.41,
+   "49": 34.72,
+   "50": 57.22,
+   "51": 67.19,
    "53": 58.97,
-   "54": 0.09,
-   "55": 48.89,
-   "56": 77.12,
-   "01": 36.59,
+   "54": 0.51,
+   "55": 48.86,
+   "56": 76.58,
+   "01": 42.76,
    "02": 0,
    "04": 8.62,
    "05": 100,
-   "06": 8.65,
-   "08": 37.88,
+   "06": 3.7,
+   "08": 37.64,
    "09": 0
   },
-  "released": "2026-11-19T20:29:58.653Z",
+  "released": "2026-11-25T14:07:05.777Z",
   "hasNational": true,
   "topic": "environment",
   "sourceId": "usdm",
@@ -1163,8 +1163,8 @@
   "caveats": [
    "Small quakes are detected far more often near dense sensor networks (like the U.S.), so the map over-represents those regions at low magnitudes."
   ],
-  "retrieved": "2026-11-25T11:50:24.984Z",
-  "lastObservation": "2026-11-25T11:31:51.395Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
+  "lastObservation": "2026-11-25T13:39:19.365Z",
   "buildHash": "cgsd9y",
   "latest": null,
   "released": null,
@@ -1172,8 +1172,8 @@
   "topic": "environment",
   "sourceId": "usgs",
   "tier": "federal",
-  "nEvents": 1827,
-  "firstObservation": "2026-10-26T12:05:17.319Z"
+  "nEvents": 1821,
+  "firstObservation": "2026-10-26T14:17:49.838Z"
  },
  {
   "id": "county-disasters",
@@ -1202,7 +1202,7 @@
    "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "ufd86n",
   "latest": null,
@@ -1244,7 +1244,7 @@
    "ANNUAL"
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "m9nhzt",
   "latest": {
@@ -1294,7 +1294,7 @@
   "isRate": true,
   "lens": "Heat wave",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-01-01",
   "buildHash": "1e08qlx",
   "latest": null,
@@ -1340,7 +1340,7 @@
    "Alaska and Hawaii records start after 1901, so they have no 1901–2000 baseline and show as no data. Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "1bbyz3w",
   "latest": {
@@ -1390,7 +1390,7 @@
    "Alaska and Hawaii records start after 1901, so they have no 1901–2000 baseline and show as no data. D.C. is not reported separately. The national line covers the 48 contiguous states."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "1bbyz3w",
   "latest": {
@@ -1491,7 +1491,7 @@
   "isRate": true,
   "lens": "Hurricane",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-01-01",
   "buildHash": "1e08qlx",
   "latest": null,
@@ -1538,7 +1538,7 @@
   "isRate": true,
   "lens": "Inland flooding",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-01-01",
   "buildHash": "1e08qlx",
   "latest": null,
@@ -1577,7 +1577,7 @@
    "ALL"
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "ufd86n",
   "latest": {
@@ -1635,7 +1635,7 @@
   "isRate": true,
   "lens": "All hazards",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-01-01",
   "buildHash": "1e08qlx",
   "latest": null,
@@ -1682,7 +1682,7 @@
   "isRate": true,
   "lens": "Wildfire",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-01-01",
   "buildHash": "1e08qlx",
   "latest": null,
@@ -1728,7 +1728,7 @@
    "Per-resident figures computed by Civic Charts with Census population estimates."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-09-30",
   "buildHash": "j6lll4",
   "latest": {
@@ -1831,7 +1831,7 @@
    "Per-resident figures computed by Civic Charts with Census population estimates."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-09-30",
   "buildHash": "j6lll4",
   "latest": {
@@ -1938,7 +1938,7 @@
    "negWord": "surplus"
   },
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-09-30",
   "buildHash": "lomc29",
   "latest": {
@@ -1989,7 +1989,7 @@
    "In dollars of each year; the share-of-GDP view adjusts for the size of the economy."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-07-01",
   "buildHash": "lomc29",
   "latest": {
@@ -2034,7 +2034,7 @@
    "Updated once a year, after the fiscal year closes."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-09-30",
   "buildHash": "lomc29",
   "latest": {
@@ -2088,7 +2088,7 @@
   ],
   "defaultChart": "columns",
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-09-30",
   "buildHash": "lomc29",
   "latest": {
@@ -2143,7 +2143,7 @@
   ],
   "defaultChart": "columns",
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-09-30",
   "buildHash": "lomc29",
   "latest": {
@@ -2197,7 +2197,7 @@
    "Shifts in payment timing (when a due date falls on a weekend) can move a month between fiscal years and nudge the 12-month total."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "lomc29",
   "latest": {
@@ -2241,7 +2241,7 @@
    "A growing economy and inflation make nominal debt rise almost every year. Debt as a share of GDP is the measure economists use to judge whether it is getting harder to carry."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-11-23",
   "buildHash": "15q182",
   "latest": {
@@ -2286,7 +2286,7 @@
    "GDP collapsed briefly in 2020, which spiked the ratio even before new borrowing showed up."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-04-01",
   "buildHash": "15q182",
   "latest": {
@@ -2330,7 +2330,7 @@
    "Inflation adjustment computed by Civic Charts with CPI-U."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-30",
   "buildHash": "15q182",
   "latest": {
@@ -2372,7 +2372,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2023-12-31",
   "buildHash": "aaiuz5",
   "latest": null,
@@ -2411,7 +2411,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2023-12-31",
   "buildHash": "aaiuz5",
   "latest": null,
@@ -2450,7 +2450,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2023-12-31",
   "buildHash": "aaiuz5",
   "latest": null,
@@ -2489,7 +2489,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2023-12-31",
   "buildHash": "aaiuz5",
   "latest": null,
@@ -2532,7 +2532,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "1u76ijw",
   "latest": null,
@@ -2628,7 +2628,7 @@
   ],
   "isCount": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "1u76ijw",
   "latest": null,
@@ -2720,7 +2720,7 @@
    "I"
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "1nbyyc8",
   "latest": {
@@ -2768,7 +2768,7 @@
    "I"
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "1nbyyc8",
   "latest": {
@@ -2816,7 +2816,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2023-12-31",
   "buildHash": "aaiuz5",
   "latest": null,
@@ -2855,7 +2855,7 @@
    "MORTGAGE30US"
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-11-19",
   "buildHash": "1ppd8z4",
   "latest": {
@@ -2905,7 +2905,7 @@
    "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2027-09-30",
   "buildHash": "1ae8zqm",
   "latest": {
@@ -2946,7 +2946,7 @@
   ],
   "geo": "us-states",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-07-01",
   "buildHash": "usu383",
   "latest": {
@@ -3049,7 +3049,7 @@
    "county-price-to-income"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "vf38ck",
   "latest": {
@@ -3093,7 +3093,7 @@
    "Uses income for all households (renters and owners), so it shows how a typical local household would fare buying the typical local home. Ratio computed by Civic Charts."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "vf38ck",
   "latest": {
@@ -3195,7 +3195,7 @@
    "county-price-to-income"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "vf38ck",
   "latest": {
@@ -3240,7 +3240,7 @@
    "Not adjusted for inflation, and the mix of homes being built changes over time (bigger homes push the median up)."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-07-01",
   "buildHash": "1t3bxa5",
   "latest": {
@@ -3284,7 +3284,7 @@
    "Inflation adjustment computed by Civic Charts using CPI-U."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-07-01",
   "buildHash": "1t3bxa5",
   "latest": {
@@ -3332,7 +3332,7 @@
    "county-rent-burden"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "vf38ck",
   "latest": {
@@ -3379,7 +3379,7 @@
    "state-rent-burden"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "vf38ck",
   "latest": {
@@ -3478,7 +3478,7 @@
   "description": "New housing units authorized by building permits each year.",
   "isCount": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "mmoec9",
   "latest": null,
@@ -3573,7 +3573,7 @@
   "description": "New housing units authorized by building permits each year, per 1,000 residents.",
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "mmoec9",
   "latest": {
@@ -3675,7 +3675,7 @@
    "county-rent-burden"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "vf38ck",
   "latest": {
@@ -3722,7 +3722,7 @@
    "state-rent-burden"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "vf38ck",
   "latest": {
@@ -3815,7 +3815,7 @@
    "Not adjusted for inflation."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-31",
   "buildHash": "1ybjrpp",
   "latest": null,
@@ -3914,7 +3914,7 @@
   ],
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "ooco2",
   "latest": null,
@@ -3961,7 +3961,7 @@
   ],
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "ooco2",
   "latest": null,
@@ -4003,7 +4003,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "sxbl6u",
   "latest": null,
@@ -4046,7 +4046,7 @@
   "isCount": true,
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "y0fpgs",
   "latest": null,
@@ -4083,7 +4083,7 @@
    "Estimates are revised after each decennial census, so older numbers may change."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-01-01",
   "buildHash": "dqh6te",
   "latest": {
@@ -4185,7 +4185,7 @@
   "zeroLine": true,
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "y0fpgs",
   "latest": null,
@@ -4227,7 +4227,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "sxbl6u",
   "latest": null,
@@ -4272,7 +4272,7 @@
   "zeroLine": true,
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-07-01",
   "buildHash": "y0fpgs",
   "latest": null,
@@ -4332,7 +4332,7 @@
    "negPhrase": "prices outpaced pay by {v}"
   },
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "m8b07s",
   "latest": {
@@ -4386,7 +4386,7 @@
   ],
   "releaseLagDays": 75,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-09-01",
   "buildHash": "jjg00s",
   "latest": {
@@ -4490,7 +4490,7 @@
   ],
   "releaseLagDays": 75,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-09-01",
   "buildHash": "jjg00s",
   "latest": {
@@ -4594,7 +4594,7 @@
   "itemLabel": "Category",
   "zeroLine": true,
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "12xcrs7",
   "latest": {
@@ -4654,7 +4654,7 @@
    "Covers private-sector employees and is an average, not the typical (median) worker."
   ],
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "m8b07s",
   "latest": {
@@ -4701,7 +4701,7 @@
   "chartTitle": "U.S. price of {s}",
   "itemLabel": "Item",
   "kind": "timeseries",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2026-10-01",
   "buildHash": "1fz50tg",
   "latest": {
@@ -4760,7 +4760,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "zb9lvd",
   "latest": {
@@ -4863,7 +4863,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "zb9lvd",
   "latest": {
@@ -4966,7 +4966,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "zb9lvd",
   "latest": {
@@ -5068,7 +5068,7 @@
    "county-no-internet"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "12ofpqk",
   "latest": {
@@ -5116,7 +5116,7 @@
    "state-no-internet"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "12ofpqk",
   "latest": {
@@ -5218,7 +5218,7 @@
    "county-no-internet"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "12ofpqk",
   "latest": {
@@ -5266,7 +5266,7 @@
    "state-no-internet"
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "12ofpqk",
   "latest": {
@@ -5360,7 +5360,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "2x38mb",
   "latest": null,
@@ -5397,7 +5397,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "1xuk97z",
   "latest": null,
@@ -5434,7 +5434,7 @@
    "GDP measures the size of an economy, not how well off its people are; divide by population for that."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2025-12-31",
   "buildHash": "1i91dg9",
   "latest": null,
@@ -5471,7 +5471,7 @@
   ],
   "isRate": true,
   "kind": "panel",
-  "retrieved": "2026-11-25T11:50:24.984Z",
+  "retrieved": "2026-11-25T14:07:05.777Z",
   "lastObservation": "2024-12-31",
   "buildHash": "t6zmsr",
   "latest": null,
