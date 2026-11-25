@@ -145,4 +145,58 @@ await fs.writeFile(path.join(SITE, 'feed.xml'), `<?xml version="1.0" encoding="U
 ${items.join('\n')}
 </channel></rss>
 `);
+// 7. Changelog page, pre-rendered from changelog.json so it reads without JavaScript.
+const changelog = JSON.parse(await fs.readFile(path.join(PUB, 'changelog.json'), 'utf8').catch(() => '[]'));
+{
+  const fmtDay = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  let last = '', li = '';
+  for (const e of changelog) {
+    if (e.date !== last) { li += `<li class="day">${fmtDay(e.date)}</li>`; last = e.date; }
+    li += `<li class="e${e.major ? ' major' : ''}">${e.major ? '<span class="tag">New</span>' : ''}<b>${esc(e.title)}</b>${e.text ? `<span>${esc(e.text)}</span>` : ''}</li>`;
+  }
+  const f = path.join(SITE, 'changelog', 'index.html');
+  await fs.writeFile(f, (await fs.readFile(f, 'utf8')).replace('<!--LOG-->', li));
+}
+
+// 8. For AI tools (the MCP server on the Worker, and crawlers): one compact summary of every
+// chart, from the same render-hook text as the pages. State maps carry every state's latest
+// value, so "what's Minnesota's rate?" is answered from this file alone; county maps are looked
+// up from data/<id>.json on demand.
+const ai = [];
+for (const c of catalog) {
+  const info = infos[c.id]; if (!info) continue;
+  const item = {
+    id: c.id, title: info.title, topic: c.topic, topicName: topicName(c.topic), geo: c.geo || null, frequency: c.frequency,
+    headline: info.headline, facts: (info.facts || []).slice(0, 5), howToRead: (info.howToRead || [])[0] || null,
+    latest: c.latest || null, latestText: info.latestText || null, lastObservation: c.lastObservation, released: c.released || null, retrieved: info.retrieved,
+    unit: c.unit?.label || null, unitFormat: c.unit ? { format: c.unit.format, decimals: c.unit.decimals } : null, description: cut(info.description || '', 400),
+    source: { publisher: info.source?.publisher, dataset: info.source?.dataset, url: info.source?.url },
+    page: `${ORIGIN}/${c.id}/`, image: `${ORIGIN}/${c.id}/og.png`, data: `${ORIGIN}/data/${c.id}.json`,
+  };
+  if (c.geo === 'us-states') {
+    try {
+      const ds = JSON.parse(await fs.readFile(path.join(PUB, 'data', `${c.id}.json`), 'utf8'));
+      const li = (ds.times || []).length - 1;
+      if (li >= 0) item.places = Object.fromEntries((ds.entities || []).filter(e => e.values?.[li] != null).map(e => [e.name, e.values[li]]));
+      item.placesAsOf = ds.times?.[li] ?? null;
+    } catch { /* no per-state values */ }
+  }
+  ai.push(item);
+}
+await fs.mkdir(path.join(SITE, 'ai'), { recursive: true });
+await fs.writeFile(path.join(SITE, 'ai', 'index.json'), JSON.stringify({ updated: new Date().toISOString(), site: ORIGIN, count: ai.length,
+  releases: releases.slice(0, 30).map(r => ({ id: r.id, title: r.title, released: r.released, lastObservation: r.lastObservation })), changelog: changelog.slice(0, 15), charts: ai }));
+await fs.writeFile(path.join(SITE, 'llms.txt'), `# Civic Charts
+
+> Charts and maps of official U.S. public data (BLS, Census, BEA, NOAA, HUD, EIA, FBI and more), each citing its source. Free, no account. Numbers come straight from the publisher; every chart's text is checked against the data.
+
+- [All charts with headline, key facts, latest value, source and links (JSON)](${ORIGIN}/ai/index.json)
+- [MCP server for AI assistants](https://plainsight-proxy.misty-brook-457e.workers.dev/mcp): search charts, get a chart with its facts and source, get a state's value, list new releases
+- [New data releases (RSS)](${ORIGIN}/feed.xml)
+- [What's new](${ORIGIN}/changelog/)
+
+## Charts
+${ai.map(a => `- [${a.title}](${a.page}): ${a.headline}`).join('\n')}
+`);
+
 console.log(`\n${Object.keys(infos).length} of ${catalog.length} dataset pages, sitemap with ${urls.length} URLs, feed with ${items.length} releases.`);

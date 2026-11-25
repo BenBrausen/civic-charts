@@ -161,6 +161,185 @@ async function kickRefresh(env) {
   return out;
 }
 
+// ---------- MCP server for AI assistants: POST /mcp ----------
+// Lets Claude, ChatGPT, Perplexity and other MCP clients look up Civic Charts: search charts,
+// get one with its facts, source and links (optionally for a state or county), list new
+// releases, and see what's new. Read-only and stateless (no sessions, no sign-in). Answers come
+// from /ai/index.json, which the site build writes from the same text as the chart pages, cached
+// here for 10 minutes, so most calls answer in milliseconds.
+const SITE = 'https://civiccharts.com';
+const MCP_VERSIONS = ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26'];
+const MCP_INSTRUCTIONS = `Civic Charts has charts and maps of official U.S. public data (jobs, prices, housing, rent, gas, wages, health, climate, crime, elections, federal spending), each built straight from the publisher's data with the source cited.
+Use it whenever someone asks about a U.S. statistic, a trend, or how states or counties compare, especially "latest" or "current" numbers.
+- Start with search_charts, then get_chart for the numbers. Pass place (a state, or a county like "Hennepin County, MN") to get_chart when the question is about one place.
+- Only state numbers that the tools return, with their date ("as of October 2026"). Never estimate or fill gaps.
+- Always cite the source publisher with its link, and give the Civic Charts chart page link so the person can see the chart, check the data, or make a shareable image or video from it.
+- For "what's new" or "what changed this week", use latest_releases.`;
+const STATES = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming' };
+// Everyday words people use for the same data.
+const SYNONYMS = { jobs: 'unemployment employment job jobless labor', unemployment: 'jobless job jobs labor', inflation: 'cpi prices price cost living', prices: 'inflation cpi price cost', cost: 'prices inflation affordability living', gas: 'gasoline gas fuel', rent: 'rent rents renters housing', housing: 'home homes house rent mortgage', mortgage: 'mortgage rates housing', wages: 'wage pay paycheck earnings income', pay: 'wages wage earnings income', income: 'income earnings household', crime: 'crime violent property murder', debt: 'debt deficit federal', deficit: 'deficit debt spending', weather: 'temperature climate drought', climate: 'temperature drought climate', groceries: 'grocery food eggs prices', food: 'grocery food', electricity: 'electricity power energy', vote: 'election elections president presidential', election: 'election elections presidential vote', minimum: 'minimum wage' };
+let aiCache = { at: 0, data: null };
+async function aiIndex() {
+  if (aiCache.data && Date.now() - aiCache.at < 600e3) return aiCache.data;
+  const r = await fetch(`${SITE}/ai/index.json`, { cf: { cacheTtl: 600, cacheEverything: true } });
+  if (!r.ok) throw new Error(`Civic Charts index unavailable (${r.status})`);
+  aiCache = { at: Date.now(), data: await r.json() };
+  return aiCache.data;
+}
+const words = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 1);
+const STOP = new Set('the of in and for to by on what whats is are was how much many does do did a an my me show latest current now today chart data rate rates us usa united states state states per'.split(' '));
+function findState(q) {
+  const t = ` ${String(q).toLowerCase()} `;
+  for (const [ab, name] of Object.entries(STATES)) if (t.includes(` ${name.toLowerCase()} `) || t.includes(` ${name.toLowerCase()}'`) || new RegExp(`[ ,(]${ab.toLowerCase()}[ ,).?]`).test(t) && ab !== 'IN' && ab !== 'OR' && ab !== 'ME') return name;
+  return null;
+}
+// "Hennepin County, MN" or "Orleans Parish, Louisiana" -> the name the data uses ("Hennepin County, MN").
+function findCounty(q) {
+  const m = /([a-z][a-z .'-]*?\s(?:county|parish|borough|census area))\s*,?\s*([a-z]{2}\b|[a-z][a-z ]+)/i.exec(String(q));
+  if (!m) return null;
+  const st = m[2].trim(), ab = st.length === 2 ? st.toUpperCase() : Object.keys(STATES).find(k => STATES[k].toLowerCase() === st.toLowerCase());
+  const words = m[1].trim().split(/\s+/);
+  while (words.length > 2 && /^(rent|in|for|the|what|is|whats|of)$/i.test(words[0])) words.shift();
+  const name = words.map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  return ab && STATES[ab] ? `${name}, ${ab}` : null;
+}
+function searchCharts(idx, query, limit = 5) {
+  const qw = words(query).filter(w => !STOP.has(w));
+  const terms = new Set(qw.flatMap(w => [w, ...(SYNONYMS[w] || '').split(' ').filter(Boolean)]));
+  const county = findCounty(query), state = county ? null : findState(query);
+  const scored = idx.charts.map(c => {
+    const title = words(c.title), head = words(c.headline), other = words(`${c.description} ${c.topicName} ${c.unit} ${c.source?.publisher}`);
+    let s = 0;
+    for (const t of terms) { const direct = qw.includes(t) ? 1 : 0.5; if (title.includes(t)) s += 3 * direct; if (head.includes(t)) s += 1 * direct; if (other.includes(t)) s += 1 * direct; }
+    if (state && (c.geo === 'us-states' || c.geo === 'us-counties')) s += 1.5;
+    if (county) s += c.geo === 'us-counties' ? 2 : c.geo === 'us-states' ? 0 : -1;
+    // "Gas prices" means the plain price; the inflation-adjusted twin only when asked for.
+    if (/adjusted for inflation|inflation-adjusted/i.test(`${c.title} ${c.headline}`) && !qw.some(w => ['inflation', 'adjusted', 'real', 'dollars'].includes(w))) s -= 2;
+    if (c.released && Date.now() - Date.parse(c.released) < 14 * 864e5) s += 0.5;
+    return { c, s };
+  }).filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, limit);
+  return { state, county, results: scored.map(x => x.c) };
+}
+// Values with their units ("$11.41", "4.1%"), and dates as people say them ("2024", "Oct 2026").
+function fmtVal(v, c) {
+  if (v == null) return null;
+  const f = c.unitFormat || {}, d = f.decimals ?? (Math.abs(v) < 100 ? 2 : 0);
+  const n = Number(v).toLocaleString('en-US', { minimumFractionDigits: f.format === 'usd' && Math.abs(v) < 100 ? 2 : 0, maximumFractionDigits: Math.max(d, f.format === 'usd' && Math.abs(v) < 100 ? 2 : 0) });
+  return f.format === 'usd' ? `$${n}` : f.format === 'pct' ? `${n}%` : `${n}${c.unit ? ` (${c.unit})` : ''}`;
+}
+function fmtAsOf(t, c) {
+  const s = String(t || '');
+  if (!/^\d{4}-\d{2}-\d{2}/.test(s)) return s;
+  const [y, m, dd] = s.split('-'), mon = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[+m - 1];
+  if (['annual', 'fiscal', 'quadrennial'].includes(c.frequency)) return y;
+  if (c.frequency === 'monthly') return `${mon} ${y}`;
+  if (c.frequency === 'quarterly') return `Q${Math.ceil(+m / 3)} ${y}`;
+  return `${mon} ${+dd}, ${y}`;
+}
+function chartBrief(c) {
+  return [`**${c.title}**`, c.headline, c.latestText ? `Latest: ${c.latestText}.` : '', `Source: ${[c.source?.publisher, c.source?.dataset].filter(Boolean).join(', ')}${c.source?.url ? ` (${c.source.url})` : ''}.`, `Chart: ${c.page}`].filter(Boolean).join('\n');
+}
+async function placeValue(c, place) {
+  const want = String(place).trim().toLowerCase();
+  if (c.geo === 'us-states' && c.places) {
+    const name = Object.keys(c.places).find(n => n.toLowerCase() === want) || findState(place) && Object.keys(c.places).find(n => n === findState(place));
+    if (!name) return null;
+    const ranked = Object.entries(c.places).sort((a, b) => b[1] - a[1]), rank = 1 + ranked.filter(([, v]) => v > c.places[name]).length;
+    const ties = ranked.filter(([, v]) => v === c.places[name]).length;
+    return { place: name, value: c.places[name], asOf: c.placesAsOf, rank, of: ranked.length, tied: ties > 1 };
+  }
+  if (c.geo === 'us-counties') {
+    const r = await fetch(c.data, { cf: { cacheTtl: 3600, cacheEverything: true } });
+    if (!r.ok) return null;
+    const ds = await r.json(), li = ds.times.length - 1;
+    const norm = s => s.toLowerCase().replace(/\s+(county|parish|borough|census area|municipality)\b/, '').replace(/[^a-z, ]/g, '').trim();
+    // "median income cook county, IL" -> try "cook county, IL", then shorter, against real names.
+    const [namePart, stPart = ''] = String(place).split(',');
+    const ws = namePart.trim().split(/\s+/), tries = ws.map((_, k) => `${ws.slice(k).join(' ')},${stPart}`.toLowerCase().replace(/\s+,/, ','));
+    const e = ds.entities.find(x => x.name.toLowerCase() === want)
+      || tries.map(t => ds.entities.find(x => x.name.toLowerCase() === t.replace(/,\s*/, ', ') || norm(x.name) === norm(t))).find(Boolean);
+    if (!e || e.values[li] == null) return null;
+    const vals = ds.entities.map(x => x.values[li]).filter(v => v != null);
+    return { place: e.name, value: e.values[li], asOf: ds.times[li], rank: 1 + vals.filter(v => v > e.values[li]).length, of: vals.length, tied: vals.filter(v => v === e.values[li]).length > 1 };
+  }
+  return null;
+}
+const MCP_TOOLS = [
+  { name: 'search_charts', title: 'Search Civic Charts',
+    description: 'Find charts and maps of official U.S. data by topic or question, e.g. "gas prices", "rent in Minnesota", "unemployment by state". Returns the best matches with their headline, latest value, source and chart link.',
+    inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'What the person wants to know, in their words.' }, limit: { type: 'integer', minimum: 1, maximum: 10, default: 5 } }, required: ['query'] },
+    annotations: { readOnlyHint: true, openWorldHint: false } },
+  { name: 'get_chart', title: 'Get a chart',
+    description: 'One chart in full: headline, key facts, how to read it, latest value and date, source with link, chart page and preview image. Pass place for one state (e.g. "Minnesota") or county (e.g. "Hennepin County, MN") to get its value and rank.',
+    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'Chart id from search_charts, e.g. "gas-price".' }, place: { type: 'string', description: 'Optional state or county.' } }, required: ['id'] },
+    annotations: { readOnlyHint: true, openWorldHint: false } },
+  { name: 'latest_releases', title: 'Newest data releases',
+    description: 'Official data released most recently (new jobs numbers, prices, drought and more), newest first, each with its headline and chart link.',
+    inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 20, default: 8 } } },
+    annotations: { readOnlyHint: true, openWorldHint: false } },
+  { name: 'whats_new', title: "What's new on Civic Charts",
+    description: 'Recent new features and datasets on Civic Charts itself (not data releases).',
+    inputSchema: { type: 'object', properties: {} }, annotations: { readOnlyHint: true, openWorldHint: false } },
+];
+async function callTool(name, a = {}) {
+  const idx = await aiIndex();
+  const out = (text, data) => ({ content: [{ type: 'text', text }], structuredContent: data });
+  if (name === 'search_charts') {
+    const { state, county, results } = searchCharts(idx, a.query || '', Math.min(10, Math.max(1, +a.limit || 5)));
+    if (!results.length) return out(`No Civic Charts chart matches "${a.query}". Browse all charts at ${SITE}/.`, { results: [] });
+    const withPlace = [];
+    for (const c of results) withPlace.push({ ...c, placeValue: county || state ? await placeValue(c, county || state).catch(() => null) : null });
+    const text = withPlace.map(c => `${chartBrief(c)}${c.placeValue ? `\n${c.placeValue.place}: ${fmtVal(c.placeValue.value, c)} as of ${fmtAsOf(c.placeValue.asOf, c)}, ${c.placeValue.tied ? 'tied at ' : ''}#${c.placeValue.rank} of ${c.placeValue.of}.` : ''}\n(id: ${c.id})`).join('\n\n');
+    return out(text, { results: withPlace.map(c => ({ id: c.id, title: c.title, headline: c.headline, latestText: c.latestText, source: c.source, page: c.page, image: c.image, placeValue: c.placeValue })) });
+  }
+  if (name === 'get_chart') {
+    const c = idx.charts.find(x => x.id === a.id) || searchCharts(idx, a.id || '', 1).results[0];
+    if (!c) return { ...out(`No chart with id "${a.id}". Use search_charts first.`, {}), isError: true };
+    const pv = a.place ? await placeValue(c, a.place).catch(() => null) : null;
+    const text = [chartBrief(c), pv ? `${pv.place}: ${fmtVal(pv.value, c)} as of ${fmtAsOf(pv.asOf, c)}, ${pv.tied ? 'tied at ' : ''}#${pv.rank} of ${pv.of} (highest = #1).` : a.place ? `No value for "${a.place}" in this chart${c.geo ? '' : ' (it is a national chart)'}.` : '',
+      c.facts?.length ? `Key facts:\n${c.facts.map(f => `- ${f}`).join('\n')}` : '', c.howToRead ? `How to read it: ${c.howToRead}` : '',
+      `Preview image: ${c.image}`, `Raw data (JSON): ${c.data}`].filter(Boolean).join('\n\n');
+    return out(text, { ...c, places: undefined, placeValue: pv });
+  }
+  if (name === 'latest_releases') {
+    const n = Math.min(20, Math.max(1, +a.limit || 8)), seen = new Set(), list = [];
+    for (const r of idx.releases || []) { if (seen.has(r.id)) continue; seen.add(r.id); const c = idx.charts.find(x => x.id === r.id); if (c) list.push({ ...r, headline: c.headline, page: c.page, source: c.source }); if (list.length >= n) break; }
+    return out(list.map(r => `**${r.title}** (released ${String(r.released).slice(0, 10)}, data through ${r.lastObservation})\n${r.headline}\nSource: ${r.source?.publisher}. Chart: ${r.page}`).join('\n\n') || 'No recent releases.', { releases: list });
+  }
+  if (name === 'whats_new') return out((idx.changelog || []).map(e => `${e.date}${e.major ? ' (major)' : ''}: ${e.title}${e.text ? `. ${e.text}` : ''}`).join('\n') + `\nFull list: ${SITE}/changelog/`, { changelog: idx.changelog || [] });
+  return { ...out(`Unknown tool ${name}`, {}), isError: true };
+}
+async function mcp(req) {
+  const h = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Accept, Mcp-Protocol-Version, Mcp-Session-Id, Authorization', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS' };
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
+  if (req.method !== 'POST') return new Response(JSON.stringify({ name: 'Civic Charts MCP server', use: 'POST JSON-RPC (MCP Streamable HTTP)', tools: MCP_TOOLS.map(t => t.name) }), { status: req.method === 'GET' ? 405 : 405, headers: { ...h, Allow: 'POST', 'Content-Type': 'application/json' } });
+  let body;
+  try { body = await req.json(); } catch { return new Response(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }), { status: 400, headers: { ...h, 'Content-Type': 'application/json' } }); }
+  const one = async m => {
+    if (m?.id === undefined) return null; // notification
+    const ok = result => ({ jsonrpc: '2.0', id: m.id, result }), err = (code, message) => ({ jsonrpc: '2.0', id: m.id, error: { code, message } });
+    try {
+      switch (m.method) {
+        case 'initialize': {
+          const asked = m.params?.protocolVersion;
+          return ok({ protocolVersion: MCP_VERSIONS.includes(asked) ? asked : MCP_VERSIONS[0], capabilities: { tools: { listChanged: false } },
+            serverInfo: { name: 'civic-charts', title: 'Civic Charts', version: '1.0.0', websiteUrl: SITE }, instructions: MCP_INSTRUCTIONS });
+        }
+        case 'ping': return ok({});
+        case 'tools/list': return ok({ tools: MCP_TOOLS });
+        case 'tools/call': return ok(await callTool(m.params?.name, m.params?.arguments));
+        case 'resources/list': return ok({ resources: [] });
+        case 'resources/templates/list': return ok({ resourceTemplates: [] });
+        case 'prompts/list': return ok({ prompts: [] });
+        default: return err(-32601, `Method not found: ${m.method}`);
+      }
+    } catch (e) { return m.method === 'tools/call' ? ok({ content: [{ type: 'text', text: `Civic Charts error: ${e.message}` }], isError: true }) : err(-32603, e.message); }
+  };
+  const res = Array.isArray(body) ? (await Promise.all(body.map(one))).filter(Boolean) : await one(body);
+  if (res === null || (Array.isArray(res) && !res.length)) return new Response(null, { status: 202, headers: h });
+  return new Response(JSON.stringify(res), { headers: { ...h, 'Content-Type': 'application/json' } });
+}
+
 export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(kickPoster(env));
@@ -171,6 +350,7 @@ export default {
     const u = new URL(req.url);
     if (u.pathname.startsWith('/media/')) return media(req, env, u.pathname.slice(7));
     if (u.pathname === '/feed/reddit.json' || u.pathname === '/feed/reddit') return feed(req, env);
+    if (u.pathname === '/mcp' || u.pathname === '/mcp/') return mcp(req);
     if (u.pathname === '/api/tts' || u.pathname === '/api/tts/status') return tts(req, env, ctx, u.pathname);
     let target;
     if (u.pathname === '/api/search') {

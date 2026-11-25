@@ -58,6 +58,15 @@ Worker and in the civic-charts-social repo); files live in `TTS_KV` and expire a
 civic-charts-social/reddit-app). The auto-poster adds to it with the same `MEDIA_UPLOAD_TOKEN`;
 it's stored in `TTS_KV` under `feed:reddit`. Nothing else to set up.
 
+## MCP server for AI assistants (/mcp)
+
+`POST /mcp` is a read-only, stateless MCP server (Streamable HTTP, JSON responses) for Claude,
+ChatGPT, Perplexity and other MCP clients. Tools: `search_charts`, `get_chart` (with an optional
+state or county), `latest_releases`, `whats_new`. It reads `civiccharts.com/ai/index.json`, which
+`scripts/build-pages.mjs` writes on every deploy, cached for 10 minutes; county values come from
+`data/<id>.json`. No secrets or settings needed. The Claude plugin (connector plus a skill with
+usage instructions) is in `plugins/civic-charts`, listed by `.claude-plugin/marketplace.json`.
+
 ## 4. Deploy the new Worker code
 
 From a computer with Node, in the repo folder:

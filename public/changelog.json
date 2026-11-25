@@ -1,0 +1,139 @@
+[
+  {
+    "date": "2026-11-25",
+    "title": "This changelog",
+    "text": "See what's new on Civic Charts, newest first."
+  },
+  {
+    "date": "2026-11-24",
+    "title": "Carousels for maps",
+    "text": "Map charts now export as swipeable slides: the map, the 5 highest and 5 lowest places, the takeaway and the source. Ties are shown as ties."
+  },
+  {
+    "date": "2026-11-24",
+    "title": "Headlines that lead with the news",
+    "text": "When a weekly number makes a big move or hits a record, the chart's headline says so (\"fell 48\u00a2 over the past 4 weeks\"), computed straight from the data."
+  },
+  {
+    "date": "2026-11-22",
+    "title": "One-tap caption copy",
+    "text": "A simple page to copy a post's caption on your phone."
+  },
+  {
+    "date": "2026-11-20",
+    "title": "Share to Reddit",
+    "text": "The Reddit tab suggests fitting communities, including your state's for state maps, and opens the post page with the source comment copied."
+  },
+  {
+    "date": "2026-11-20",
+    "title": "Smoother videos",
+    "text": "Videos are now drawn frame by frame, so they play smoothly on every platform."
+  },
+  {
+    "date": "2026-11-17",
+    "title": "Privacy and terms pages",
+    "text": "Plain-language pages on what the site collects (very little) and how it can be used."
+  },
+  {
+    "date": "2026-11-15",
+    "title": "Fixed: loading search results on phones"
+  },
+  {
+    "date": "2026-11-13",
+    "major": true,
+    "title": "AI voiceovers",
+    "text": "Add a natural-sounding narrated voiceover to any chart video, written from the data."
+  },
+  {
+    "date": "2026-11-13",
+    "title": "Local money and climate data",
+    "text": "Fair Market Rents by county, federal spending by state, temperature trends and the weekly Drought Monitor."
+  },
+  {
+    "date": "2026-11-12",
+    "major": true,
+    "title": "Cost-of-living data",
+    "text": "Grocery prices, wages vs. inflation, rent, home affordability and electricity prices, by state and county where available."
+  },
+  {
+    "date": "2026-11-11",
+    "major": true,
+    "title": "A page for every chart",
+    "text": "Each dataset now has its own link (civiccharts.com/gas-price/) with a summary, key facts and a preview image, plus an RSS feed of new releases."
+  },
+  {
+    "date": "2026-11-11",
+    "title": "Pick up where you left off",
+    "text": "Reloading the page keeps your chart and settings."
+  },
+  {
+    "date": "2026-11-10",
+    "major": true,
+    "title": "Simple and Advanced modes",
+    "text": "Simple mode gets you a finished chart in a few taps; Advanced shows every option."
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Ready-made post text",
+    "text": "Captions written for Threads, Bluesky, YouTube Shorts, Instagram, Reddit and more, sized to each platform's limits."
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Instagram Reels and Stories sizes",
+    "text": "With margins measured from the real apps, so nothing important hides under buttons."
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Map labels",
+    "text": "Place names stay readable on tall, phone-shaped maps."
+  },
+  {
+    "date": "2026-11-09",
+    "title": "Internet access data",
+    "text": "Broadband datasets, and better-labeled results when you search other sources."
+  },
+  {
+    "date": "2026-11-09",
+    "title": "Plainsight is now Civic Charts",
+    "text": "New name, new home at civiccharts.com."
+  },
+  {
+    "date": "2026-11-08",
+    "major": true,
+    "title": "Claim check",
+    "text": "Every chart's text is checked against the data before you can export it. If a number doesn't match, it tells you and offers the fix."
+  },
+  {
+    "date": "2026-11-08",
+    "title": "More ways to share",
+    "text": "LinkedIn and Facebook sizes, slides, a one-page brief, CSV data, embed code and share links that rebuild the exact chart."
+  },
+  {
+    "date": "2026-11-08",
+    "title": "Elections and crime data",
+    "text": "County presidential results from 2000 to 2024, and FBI crime rates with how they differ from the FBI's official estimates."
+  },
+  {
+    "date": "2026-11-08",
+    "title": "Federal, state and local sources",
+    "text": "FEMA, Census, NASA, EPA and FDA data, plus 43 state portals and 88 city, county and regional portals to search."
+  },
+  {
+    "date": "2026-11-08",
+    "major": true,
+    "title": "Compare datasets",
+    "text": "Put two or more datasets in one chart, with a clear note on whether the comparison is fair."
+  },
+  {
+    "date": "2026-11-08",
+    "major": true,
+    "title": "County maps",
+    "text": "Map any county-level dataset, zoom to your state, and upload your own county data."
+  },
+  {
+    "date": "2026-11-08",
+    "major": true,
+    "title": "Launch",
+    "text": "Turn official public data into honest charts and videos for social media, with the source on every frame."
+  }
+]

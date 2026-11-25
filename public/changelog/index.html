@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's new | Civic Charts</title>
+<meta name="description" content="What's new on Civic Charts: new data, features and fixes, newest first.">
+<link rel="canonical" href="https://civiccharts.com/changelog/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+  :root { --bg: #f6f5f1; --fg: #1b1b1b; --muted: #555; --line: #ddd9cf; --accent: #1d4e89; --hi: #e8f0fb; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161616; --fg: #ececec; --muted: #aaa; --line: #333; --accent: #8db4ff; --hi: #1d2736; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.55 system-ui, -apple-system, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 15px; }
+  a { color: var(--accent); } nav { margin-bottom: 28px; } nav a { text-decoration: none; font-weight: 600; }
+  ol { list-style: none; padding: 0; margin: 24px 0 0; }
+  .day { margin: 28px 0 8px; font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  li.e { padding: 10px 0; border-top: 1px solid var(--line); }
+  li.e.major { background: var(--hi); border: 0; border-radius: 10px; padding: 14px 16px; margin: 6px 0; }
+  li.e b { display: block; } li.e span { color: var(--muted); font-size: 16px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); margin-right: 6px; text-transform: uppercase; letter-spacing: .04em; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">← Civic Charts</a></nav>
+<h1>What's new</h1>
+<p class="muted">New data, features and fixes, newest first. Highlighted entries are the big ones.</p>
+<ol id="log"><!--LOG--></ol>
+<footer class="muted">Questions or ideas: <a href="mailto:hello@civiccharts.com">hello@civiccharts.com</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></footer>
+</main>
+<script>
+  // The deployed page arrives pre-filled (scripts/build-pages.mjs); this fills it when it isn't.
+  const log = document.getElementById('log');
+  if (!log.querySelector('li')) fetch('/changelog.json').then(r => r.json()).then(items => {
+    const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const day = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    let last = '', html = '';
+    for (const e of items) {
+      if (e.date !== last) { html += `<li class="day">${day(e.date)}</li>`; last = e.date; }
+      html += `<li class="e${e.major ? ' major' : ''}">${e.major ? '<span class="tag">New</span>' : ''}<b>${esc(e.title)}</b>${e.text ? `<span>${esc(e.text)}</span>` : ''}</li>`;
+    }
+    log.innerHTML = html;
+  }).catch(() => { log.innerHTML = '<li class="e">Couldn\'t load the changelog. Try again in a moment.</li>'; });
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "civic-charts",
+  "version": "1.0.0",
+  "description": "Official U.S. public data on demand: the latest jobs, prices, rent, gas, wages, health, climate and election numbers, for the nation, any state or county, with the source and a chart link.",
+  "author": { "name": "Civic Charts", "url": "https://civiccharts.com" },
+  "homepage": "https://civiccharts.com",
+  "repository": "https://github.com/BenBrausen/civic-charts",
+  "license": "MIT",
+  "keywords": ["data", "statistics", "government", "economy", "charts", "census", "bls"]
+}

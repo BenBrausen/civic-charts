@@ -1,0 +1,11 @@
+{
+  "name": "civic-charts",
+  "owner": { "name": "Civic Charts", "url": "https://civiccharts.com" },
+  "plugins": [
+    {
+      "name": "civic-charts",
+      "source": "./plugins/civic-charts",
+      "description": "Official U.S. public data on demand, with sources and chart links."
+    }
+  ]
+}

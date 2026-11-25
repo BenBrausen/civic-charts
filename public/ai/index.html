@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Use Civic Charts in your AI assistant | Civic Charts</title>
+<meta name="description" content="Connect Claude, ChatGPT, Perplexity or any MCP-capable AI tool to Civic Charts for the latest official U.S. numbers, with sources and chart links.">
+<link rel="canonical" href="https://civiccharts.com/ai/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+  :root { --bg: #f6f5f1; --fg: #1b1b1b; --muted: #555; --line: #ddd9cf; --accent: #1d4e89; --box: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161616; --fg: #ececec; --muted: #aaa; --line: #333; --accent: #8db4ff; --box: #222; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 system-ui, -apple-system, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 30px; margin: 0 0 4px; } h2 { font-size: 20px; margin: 32px 0 6px; }
+  .muted { color: var(--muted); font-size: 15px; } a { color: var(--accent); }
+  nav { margin-bottom: 28px; } nav a { text-decoration: none; font-weight: 600; }
+  code, .url { font: 15px ui-monospace, monospace; background: var(--box); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; word-break: break-all; }
+  .url { display: block; padding: 10px 12px; margin: 8px 0; }
+  button { padding: 8px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; font-size: 15px; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">← Civic Charts</a></nav>
+<h1>Use Civic Charts in your AI assistant</h1>
+<p class="muted">Free, no account, read-only.</p>
+<p>Connect your AI tool and it can look up the latest official U.S. numbers (jobs, prices, rent, gas, wages, health, climate, elections) for the country, any state or any county. Answers come with the source and a link to the chart, so you can check the data or share it.</p>
+<p>Try asking: <em>"What's the unemployment rate in Texas?"</em>, <em>"How has rent changed in Hennepin County?"</em>, <em>"What new government data came out this week?"</em></p>
+
+<h2>Connector address</h2>
+<span class="url" id="u">https://plainsight-proxy.misty-brook-457e.workers.dev/mcp</span>
+<button type="button" id="copy">Copy address</button>
+
+<h2>Claude</h2>
+<p><b>Claude app or claude.ai:</b> Settings → Connectors → <b>Add custom connector</b>, name it Civic Charts, and paste the address above.</p>
+<p><b>Claude Code:</b> install the plugin, which adds the connector plus instructions Claude follows when it uses it:</p>
+<p><code>/plugin marketplace add BenBrausen/civic-charts</code><br><code>/plugin install civic-charts@civic-charts</code></p>
+
+<h2>ChatGPT</h2>
+<p>In settings, add a connector (sometimes called an app) with the address above. Custom connectors may require a plan or developer mode that allows them.</p>
+
+<h2>Perplexity and other AI tools</h2>
+<p>Any tool that supports MCP connectors can use the address above. Look for "connectors", "MCP" or "custom tools" in its settings.</p>
+
+<h2>What it can do</h2>
+<ul>
+  <li><b>Search charts</b> by question, in plain words.</li>
+  <li><b>Get a chart</b>: headline, key facts, latest value and date, how to read it, source link, chart link and preview image. Ask about one state or county for its value and rank.</li>
+  <li><b>Newest releases</b>: what official data came out most recently.</li>
+</ul>
+<p class="muted">Every number comes from the publisher's data, and chart text is checked against it. For crawlers and developers: <a href="/ai/index.json">/ai/index.json</a> (every chart's summary) and <a href="/llms.txt">/llms.txt</a>.</p>
+<footer class="muted">Questions: <a href="mailto:hello@civiccharts.com">hello@civiccharts.com</a> · <a href="/changelog/">What's new</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></footer>
+</main>
+<script>
+  document.getElementById('copy').onclick = async e => { try { await navigator.clipboard.writeText(document.getElementById('u').textContent.trim()); e.target.textContent = 'Copied'; } catch { } };
+</script>
+</body>
+</html>
