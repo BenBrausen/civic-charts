@@ -591,6 +591,35 @@ async function censusCountyFile() {
   throw new Error('No Census county estimates file found');
 }
 
+// Earlier decades: the 2000-2010 intercensal file and the 2010-2020 estimates file. Their values
+// are merged into each county's record under the current file's column names (the 2010s file
+// says NATURALINC where the current one says NATURALCHG), without overriding any current value.
+let countyHist;
+async function countyHistory() {
+  if (countyHist) return countyHist;
+  const out = new Map();
+  const load = async (url, map) => {
+    try {
+      const text = await get(url, 'latin1', 1); if (!text.startsWith('SUMLEV')) return;
+      const rows = parseCSV(text), h = rows[0];
+      for (const r of rows.slice(1)) {
+        const rec = Object.fromEntries(h.map((k, i) => [k, r[i]])); if (+rec.SUMLEV !== 50) continue;
+        const id = String(rec.STATE).padStart(2, '0') + String(rec.COUNTY).padStart(3, '0'), o = out.get(id) || {};
+        for (const [k, v] of Object.entries(rec)) { const kk = map(k); if (kk && o[kk] == null) o[kk] = v; }
+        out.set(id, o);
+      }
+    } catch (e) { console.warn(`  county history ${url.split('/').pop()}: ${e.message}`); }
+  };
+  await load('https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/counties/totals/co-est2020-alldata.csv',
+    k => (/^POPESTIMATE20(1\d)$/.test(k) ? k : /^R(NATURALINC|INTERNATIONALMIG|DOMESTICMIG)20(1[1-9]|20)$/.test(k) ? k.replace('NATURALINC', 'NATURALCHG') : null));
+  await load('https://www2.census.gov/programs-surveys/popest/datasets/2000-2010/intercensal/county/co-est00int-tot.csv', k => (/^POPESTIMATE200\d$/.test(k) ? k : null));
+  return (countyHist = out);
+}
+async function withHistory(recs) {
+  const hist = await countyHistory();
+  return recs.map(r => { const h = hist.get(r.STATE + r.COUNTY); if (!h) return r; const x = { ...r }; for (const [k, v] of Object.entries(h)) if (x[k] == null || x[k] === '') x[k] = v; return x; });
+}
+
 function countyPanel(meta, recs, years, valueOf) {
   const last = Math.max(...Object.keys(recs[0]).filter(k => /^POPESTIMATE\d{4}$/.test(k)).map(k => +k.slice(-4)));
   const entities = recs.map(r => ({ id: r.STATE + r.COUNTY, code: ABBR[r.STATE], name: `${r.CTYNAME}, ${ABBR[r.STATE]}`, short: r.CTYNAME, pop: +r[`POPESTIMATE${last}`],
@@ -599,28 +628,31 @@ function countyPanel(meta, recs, years, valueOf) {
 }
 
 builders['county-population'] = async () => {
-  const { vintage, recs } = await censusCountyFile();
-  const years = []; for (let y = 2020; y <= vintage; y++) years.push(y);
+  const { vintage, recs: cur } = await censusCountyFile();
+  const recs = await withHistory(cur);
+  const years = []; for (let y = 2000; y <= vintage; y++) years.push(y);
+  const since2020 = years.filter(y => y >= 2020);
   const src = { publisher: 'U.S. Census Bureau', dataset: `County Population Totals, Vintage ${vintage}`, url: 'https://www.census.gov/programs-surveys/popest.html' };
   const base = { category: 'People', frequency: 'annual', source: src, reframes: ['county-population', 'county-growth', 'county-migration'] };
   return [
     countyPanel({ ...base, id: 'county-population', title: 'Population by county', lens: 'People',
       unit: { label: 'Resident population (July 1)', format: 'number', decimals: 0 },
       description: 'Estimated number of people living in each county on July 1 of each year.',
-      howToRead: ['Annual estimates built from births, deaths and migration since the 2020 Census.'],
-      caveats: [COUNTY_CAVEAT], isCount: true }, recs, years, (r, y) => +r[`POPESTIMATE${y}`]),
+      howToRead: ['Annual estimates built from births, deaths and migration, restarted from each census count (2000, 2010, 2020).'],
+      caveats: [COUNTY_CAVEAT, 'Estimates are rebased after each census, so a small jump at 2010 or 2020 can reflect the new census count rather than people moving.', 'Counties that were created or merged since 2000 start in the year they appear.'], isCount: true },
+      recs, years, (r, y) => (r[`POPESTIMATE${y}`] === '' || r[`POPESTIMATE${y}`] == null ? NaN : +r[`POPESTIMATE${y}`])),
     countyPanel({ ...base, id: 'county-growth', title: 'Population growth by county since 2020', lens: 'Growth since 2020',
       unit: { label: 'Population change since April 2020', format: 'pct', decimals: 1 },
       description: 'How much each county\'s population has grown or shrunk since the 2020 Census.',
       howToRead: ['Percent change from the April 2020 Census base, so small counties can swing a lot from a few hundred people.'],
       caveats: [COUNTY_CAVEAT, 'Percent change computed by Civic Charts from Census estimates.'], isRate: true, zeroLine: true },
-      recs, years, (r, y) => round((+r[`POPESTIMATE${y}`] / +r.ESTIMATESBASE2020 - 1) * 100, 2)),
+      recs, since2020, (r, y) => round((+r[`POPESTIMATE${y}`] / +r.ESTIMATESBASE2020 - 1) * 100, 2)),
     countyPanel({ ...base, id: 'county-migration', title: 'Where Americans are moving, by county', lens: 'Moves within the U.S.',
       unit: { label: 'Net domestic migration per 1,000 residents', format: 'number', decimals: 1 },
       description: 'People moving into a county from elsewhere in the U.S., minus people moving out, per 1,000 residents.',
       howToRead: ['Positive means more people arrived from other parts of the U.S. than left. Immigration from abroad is counted separately and is not included.'],
-      caveats: [COUNTY_CAVEAT, 'The first year (2020) covers only April to July.'], isRate: true, zeroLine: true },
-      recs, years.filter(y => y > 2020), (r, y) => round(+r[`RDOMESTICMIG${y}`], 1)),
+      caveats: [COUNTY_CAVEAT, 'Years through 2020 come from the 2010s estimates series, later years from the current series.'], isRate: true, zeroLine: true },
+      recs, years.filter(y => y >= 2011), (r, y) => (r[`RDOMESTICMIG${y}`] == null || r[`RDOMESTICMIG${y}`] === '' ? NaN : round(+r[`RDOMESTICMIG${y}`], 1))),
   ];
 };
 
@@ -817,8 +849,9 @@ builders['hazard-risk'] = async () => {
 
 // ---------- Census, no key needed ----------
 builders['county-vitals'] = async () => {
-  const { vintage, recs } = await censusCountyFile();
-  const years = []; for (let y = 2021; y <= vintage; y++) years.push(y);
+  const { vintage, recs: cur } = await censusCountyFile();
+  const recs = await withHistory(cur);
+  const years = []; for (let y = 2011; y <= vintage; y++) years.push(y);
   const src = { publisher: 'U.S. Census Bureau', dataset: `County Population Totals and Components of Change, Vintage ${vintage}`, url: 'https://www.census.gov/programs-surveys/popest.html' };
   const base = { category: 'People', frequency: 'annual', source: src, reframes: ['county-population', 'county-growth', 'county-migration', 'county-natural-change', 'county-immigration'], isRate: true, zeroLine: true };
   return [
@@ -826,13 +859,13 @@ builders['county-vitals'] = async () => {
       unit: { label: 'Births minus deaths per 1,000 residents', format: 'number', decimals: 1 },
       description: 'Natural change: births minus deaths each year, per 1,000 residents. Below zero means deaths outnumbered births.',
       howToRead: ['Older counties, especially rural ones, often have more deaths than births even before anyone moves away.'], caveats: [COUNTY_CAVEAT] },
-      recs, years, (r, y) => round(+r[`RNATURALCHG${y}`], 1)),
+      recs, years, (r, y) => (r[`RNATURALCHG${y}`] == null || r[`RNATURALCHG${y}`] === '' ? NaN : round(+r[`RNATURALCHG${y}`], 1))),
     countyPanel({ ...base, id: 'county-immigration', title: 'Immigration by county', lens: 'Moves from abroad',
       unit: { label: 'Net international migration per 1,000 residents', format: 'number', decimals: 1 },
       description: 'People arriving from abroad minus people leaving the U.S., per 1,000 residents.',
       howToRead: ['Includes immigrants of all legal statuses, people moving to and from Puerto Rico, and Americans returning from abroad.'],
       caveats: ['International migration is the hardest population component to estimate and is revised often.', COUNTY_CAVEAT] },
-      recs, years, (r, y) => round(+r[`RINTERNATIONALMIG${y}`], 1)),
+      recs, years, (r, y) => (r[`RINTERNATIONALMIG${y}`] == null || r[`RINTERNATIONALMIG${y}`] === '' ? NaN : round(+r[`RINTERNATIONALMIG${y}`], 1))),
   ];
 };
 
@@ -865,11 +898,15 @@ builders['county-age'] = async () => {
 // Small Area Income and Poverty Estimates: single-year county poverty and income, no key.
 builders['county-saipe'] = async () => {
   const years = [], data = new Map();
-  for (let y = 2005; y <= new Date().getUTCFullYear(); y++) {
+  // County estimates start in 1989 (1990-92 and 1994 were never published). Files before 2004
+  // end in .dat; the layout is the same.
+  for (let y = 1989; y <= new Date().getUTCFullYear(); y++) {
     const yy = String(y % 100).padStart(2, '0');
-    let text;
-    try { text = await get(`https://www2.census.gov/programs-surveys/saipe/datasets/${y}/${y}-state-and-county/est${yy}all.txt`, 'latin1', 1); } catch { continue; }
-    if (!/^\d{2}\s+0\s/.test(text)) continue;
+    let text = null;
+    for (const ext of y < 2004 ? ['dat', 'txt'] : ['txt', 'dat']) {
+      try { const t = await get(`https://www2.census.gov/programs-surveys/saipe/datasets/${y}/${y}-state-and-county/est${yy}all.${ext}`, 'latin1', 1); if (/^\d{2}\s+0\s/.test(t)) { text = t; break; } } catch { }
+    }
+    if (!text) continue;
     years.push(y);
     for (const line of text.split(/\r?\n/)) {
       const t = line.trim().split(/\s+/);
@@ -890,7 +927,7 @@ builders['county-saipe'] = async () => {
   return [
     panel({ ...base, id: 'county-poverty', title: 'Poverty rate by county', lens: 'Poverty rate', unit: { label: 'People below the poverty line', format: 'pct', decimals: 1 },
       description: 'Share of people whose family income is below the federal poverty threshold.', isRate: true,
-      caveats: ['Each county estimate has a margin of error; for small counties the 90% range is often several points wide, so close rankings are not meaningful.', COUNTY_CAVEAT] },
+      caveats: ['Each county estimate has a margin of error; for small counties the 90% range is often several points wide, so close rankings are not meaningful.', 'Starts in 1989; the Census Bureau published no county estimates for 1990-1992 or 1994.', COUNTY_CAVEAT] },
       years.map(y => `${y}-12-31`), ent(x => x.pov)),
     panel({ ...base, id: 'county-income', title: 'Median household income by county', lens: 'Median income', unit: { label: 'Median household income', format: 'usd', decimals: 0 },
       description: 'Income of the household in the middle of each county.', isRate: true,
@@ -1291,8 +1328,28 @@ builders['state-electricity'] = async () => {
 
 // Census ACS 5-year: rent, rent burden, home value and price-to-income, for states and
 // counties. Same keyless bulk files as broadband; years already in a snapshot are reused.
+// Years before 2021 aren't in the bulk files; the Census API has them (5-year ACS from 2009)
+// with a free key. Returns the same shape: Map('US' | state fips | county fips -> value).
+async function acsApiYear(y, vars) {
+  const key = process.env.CENSUS_API_KEY; if (!key) return null;
+  const m = new Map();
+  for (const [forGeo, idOf] of [['us:1', () => 'US'], ['state:*', r => r.state], ['county:*', r => r.state + r.county]]) {
+    let rows;
+    try { rows = await get(`https://api.census.gov/data/${y}/acs/acs5?get=${vars.join(',')}&for=${forGeo}&key=${key}`, 'json', 1); } catch { return null; }
+    if (!Array.isArray(rows) || rows.length < 2) return null;
+    const h = rows[0];
+    for (const r of rows.slice(1)) { const rec = Object.fromEntries(h.map((k, i) => [k, r[i]])); m.set(idOf(rec), vars.map(v => { const x = parseFloat(rec[v]); return Number.isFinite(x) && x >= 0 ? x : null; })); }
+  }
+  return m.size > 3000 ? m : null;
+}
 async function acsYears(table, skip) {
   const out = new Map();
+  if (!process.env.CENSUS_API_KEY) console.log(`  ACS ${table}: no CENSUS_API_KEY, so years before 2021 are skipped`);
+  for (let y = 2009; y < 2021; y++) {
+    if (skip.has(y)) continue;
+    const m = await acsApiYear(y, [`${table.toUpperCase()}_001E`]);
+    if (m) { out.set(y, new Map([...m].map(([k, v]) => [k, v[0]]))); console.log(`  ACS ${y} ${table} (API): ${m.size} geographies`); }
+  }
   for (let y = 2021; y <= new Date().getUTCFullYear(); y++) {
     if (skip.has(y)) continue;
     let text;

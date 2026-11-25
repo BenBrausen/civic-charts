@@ -68,9 +68,9 @@
    "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T15:03:25.689Z",
+  "retrieved": "2026-11-25T15:25:36.247Z",
   "lastObservation": "2024-12-31",
-  "buildHash": "10blojp",
+  "buildHash": "nbtfys",
   "latest": null,
   "released": null,
   "hasNational": false,
@@ -78,7 +78,7 @@
   "sourceId": "census",
   "tier": "federal",
   "nEntities": 3144,
-  "firstObservation": "2005-12-31"
+  "firstObservation": "1989-12-31"
  },
  {
   "id": "state-income",
@@ -480,12 +480,13 @@
   "isRate": true,
   "caveats": [
    "Each county estimate has a margin of error; for small counties the 90% range is often several points wide, so close rankings are not meaningful.",
+   "Starts in 1989; the Census Bureau published no county estimates for 1990-1992 or 1994.",
    "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
   ],
   "kind": "panel",
-  "retrieved": "2026-11-25T15:03:25.689Z",
+  "retrieved": "2026-11-25T15:25:36.247Z",
   "lastObservation": "2024-12-31",
-  "buildHash": "10blojp",
+  "buildHash": "nbtfys",
   "latest": null,
   "released": null,
   "hasNational": false,
@@ -493,7 +494,7 @@
   "sourceId": "census",
   "tier": "federal",
   "nEntities": 3144,
-  "firstObservation": "2005-12-31"
+  "firstObservation": "1989-12-31"
  },
  {
   "id": "consumer-sentiment",
@@ -3914,9 +3915,9 @@
   ],
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T15:03:25.689Z",
+  "retrieved": "2026-11-25T15:25:36.247Z",
   "lastObservation": "2025-07-01",
-  "buildHash": "ooco2",
+  "buildHash": "1x4ugtu",
   "latest": null,
   "released": null,
   "hasNational": false,
@@ -3924,7 +3925,7 @@
   "sourceId": "census",
   "tier": "federal",
   "nEntities": 3144,
-  "firstObservation": "2021-07-01"
+  "firstObservation": "2011-07-01"
  },
  {
   "category": "People",
@@ -3961,9 +3962,9 @@
   ],
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T15:03:25.689Z",
+  "retrieved": "2026-11-25T15:25:36.247Z",
   "lastObservation": "2025-07-01",
-  "buildHash": "ooco2",
+  "buildHash": "1x4ugtu",
   "latest": null,
   "released": null,
   "hasNational": false,
@@ -3971,7 +3972,7 @@
   "sourceId": "census",
   "tier": "federal",
   "nEntities": 3144,
-  "firstObservation": "2021-07-01"
+  "firstObservation": "2011-07-01"
  },
  {
   "category": "People",
@@ -4038,17 +4039,19 @@
   },
   "description": "Estimated number of people living in each county on July 1 of each year.",
   "howToRead": [
-   "Annual estimates built from births, deaths and migration since the 2020 Census."
+   "Annual estimates built from births, deaths and migration, restarted from each census count (2000, 2010, 2020)."
   ],
   "caveats": [
-   "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map."
+   "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map.",
+   "Estimates are rebased after each census, so a small jump at 2010 or 2020 can reflect the new census count rather than people moving.",
+   "Counties that were created or merged since 2000 start in the year they appear."
   ],
   "isCount": true,
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T15:03:25.689Z",
+  "retrieved": "2026-11-25T15:25:36.247Z",
   "lastObservation": "2025-07-01",
-  "buildHash": "y0fpgs",
+  "buildHash": "1vg9aln",
   "latest": null,
   "released": null,
   "hasNational": false,
@@ -4056,7 +4059,7 @@
   "sourceId": "census",
   "tier": "federal",
   "nEntities": 3144,
-  "firstObservation": "2020-07-01"
+  "firstObservation": "2000-07-01"
  },
  {
   "id": "state-population",
@@ -4185,9 +4188,9 @@
   "zeroLine": true,
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T15:03:25.689Z",
+  "retrieved": "2026-11-25T15:25:36.247Z",
   "lastObservation": "2025-07-01",
-  "buildHash": "y0fpgs",
+  "buildHash": "1vg9aln",
   "latest": null,
   "released": null,
   "hasNational": false,
@@ -4266,15 +4269,15 @@
   ],
   "caveats": [
    "Connecticut replaced its counties with planning regions in 2022, so it appears as no data on the county map.",
-   "The first year (2020) covers only April to July."
+   "Years through 2020 come from the 2010s estimates series, later years from the current series."
   ],
   "isRate": true,
   "zeroLine": true,
   "geo": "us-counties",
   "kind": "panel",
-  "retrieved": "2026-11-25T15:03:25.689Z",
+  "retrieved": "2026-11-25T15:25:36.247Z",
   "lastObservation": "2025-07-01",
-  "buildHash": "y0fpgs",
+  "buildHash": "1vg9aln",
   "latest": null,
   "released": null,
   "hasNational": false,
@@ -4282,7 +4285,7 @@
   "sourceId": "census",
   "tier": "federal",
   "nEntities": 3144,
-  "firstObservation": "2021-07-01"
+  "firstObservation": "2011-07-01"
  },
  {
   "category": "Prices",

@@ -1,6 +1,12 @@
 [
   {
     "date": "2026-11-25",
+    "major": true,
+    "title": "Decades more county history",
+    "text": "County poverty and household income now go back to 1989, county population to 2000, and moves and births to 2011, so you can show the whole story or just the last decade."
+  },
+  {
+    "date": "2026-11-25",
     "title": "Suggested comparisons",
     "text": "Charts now suggest related data people often look at together, like unemployment and job openings, or income and rent. One tap adds it, after a check that the pairing is fair."
   },
